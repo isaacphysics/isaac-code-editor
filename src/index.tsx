@@ -1,17 +1,22 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
 
-ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById('root')
-);
+import "./scss/cs/isaac.scss";
+import { Sandbox } from './app/Sandbox';
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+window.addEventListener("message", (event) => {
+	// Do we trust the sender of this message?
+	if (event.origin !== "https://isaaccomputerscience.org/") {
+		console.log("Event origin doesn't match isaac computer science!");
+		// return; // commented for testing
+	}
+
+	if (event.data) {
+		console.log("received data")
+		console.log(event.data)
+
+		ReactDOM.render(<Sandbox initialCode={event.data.code} />,
+			document.getElementById("root")
+		);
+	}
+}, false);

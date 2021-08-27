@@ -1,0 +1,28 @@
+// ISAAC
+#login-page {
+  .login-google {
+    display: inline-block;
+    text-indent: -99999em;
+    width: 191px;
+    height: 46px;
+
+    &:hover {
+
+      width: 191px;
+      height: 46px;
+    }
+  }
+  @media only screen and (min-resolution: 192dpi) {
+    .login-google {
+
+      background-size: 191px 46px;
+      &:hover {
+
+        background-size: 191px 46px;
+      }
+    }
+  }
+}
+
+
+// NOMENSA login.scss LIVES IN ISAAC'S elements.scss

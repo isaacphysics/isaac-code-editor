@@ -1,0 +1,70 @@
+.editor {
+  background: white;
+  padding: 0.5rem;
+  font-weight: 400;
+  border: solid 1px #00000021;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  min-height: 5rem;
+  max-height: 15rem;
+}
+
+.output-terminal {
+  height: 10rem;
+  background-color: $black;
+  font-family: Consolas, monospace;
+  color: white;
+  padding: 0;
+  overflow: auto;
+}
+
+.output-text {
+  //padding: 0.65rem;
+}
+
+.cm-scroller {
+  //min-height: 10rem;
+}
+
+.run-button {
+  min-width: 4rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  margin: 1rem;
+}
+
+.run-arrow {
+  background-image: url("run_arrow.svg");
+  width: 100px;
+  height: 100px;
+  background-size: cover;
+}
+
+.feedback-banner {
+
+  font-family: Consolas, monospace;
+  margin: 0;
+  position: absolute;
+  overflow: auto;
+}
+
+.feedback-success {
+  background-color: $green;
+}
+
+.feedback-error {
+  background-color: $red;
+}
+
+.feedback-button {
+  opacity: .2;
+  text-shadow: 0 1px 0 #fff;
+  background: 0 0;
+  padding: 0;
+  color: $black;
+  font-weight: 700;
+  font-size: 120%;
+  margin-top: -0.2rem;
+  position: absolute;
+  right: 0.5rem;
+}

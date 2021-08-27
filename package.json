@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@codemirror/basic-setup": "^0.19.0",
+    "@codemirror/lang-python": "^0.19.2",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
@@ -10,9 +12,14 @@
     "@types/node": "^12.20.20",
     "@types/react": "^17.0.19",
     "@types/react-dom": "^17.0.9",
+    "bootstrap": "^5.1.0",
+    "bootstrap-block-grid": "^1.1.7",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
+    "saas": "^1.0.0",
+    "sass": "^1.38.1",
+    "skulpt": "^1.2.0",
     "typescript": "^4.3.5",
     "web-vitals": "^1.1.2"
   },

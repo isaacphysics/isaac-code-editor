@@ -1,0 +1,17 @@
+@import "../common/header";
+
+header {
+  z-index: 20;
+  @include respond-above(sm) {
+    background-size: 100% 60%;
+  }
+}
+
+div.header-progress {
+  justify-content: center !important;
+  padding-left: 15% !important;
+}
+
+.header-links {
+  margin-top: .7rem;
+}
