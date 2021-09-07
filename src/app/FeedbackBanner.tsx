@@ -1,12 +1,20 @@
+import {useDispatch, useSelector} from "react-redux";
+import {dismissFeedback} from "./redux/FeedbackStore";
+
 export interface Feedback {
-	feedback: string;
-	error: boolean;
+	success: boolean;
+	message: string;
 }
 
-export const FeedbackBanner = (props: {feedback: Feedback, handleDismissed: () => void}) => {
-	console.log("updated feedback")
-	return <div className={"feedback-banner w-100 p-2 " + (props.feedback.error ? "feedback-error" : "feedback-success")}>
-		<button className={"feedback-button"} onClick={props.handleDismissed}>&times;</button>
-		{props.feedback.feedback}
+export const FeedbackBanner = () => {
+	const message = useSelector((state: any) => state.feedback.message);
+	const success = useSelector((state: any) => state.feedback.success);
+
+	const dispatch = useDispatch();
+	const dismiss = () => dispatch(dismissFeedback());
+
+	return <div className={"feedback-banner w-100 p-2 " + (success ? "feedback-success" : "feedback-error")}>
+		<button className={"feedback-button"} onClick={dismiss}>&times;</button>
+		{message}
 	</div>
 }

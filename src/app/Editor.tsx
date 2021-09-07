@@ -6,20 +6,19 @@ import {keymap} from "@codemirror/view";
 import {indentWithTab} from "@codemirror/commands";
 
 export const Editor = (props: {initialCode: string, setGetCodeFunction: (getCode: () => string) => void}) => {
-	const editorContainer = useRef<HTMLPreElement>(null);
 	const [editor, setEditor] = useState<EditorView | null>(null);
 
-	console.log("initial code", props.initialCode)
-
+	// insert editor on render
+	const editorContainer = useRef<HTMLPreElement>(null);
 	useEffect(()  => {
-		if(editor) editor.destroy();
+		if(editor) editor.destroy(); // prevent two editors from appearing from when using hot reload
 		setEditor(new EditorView({
 			state: EditorState.create({
 				doc: props.initialCode,
 				extensions: [
 					basicSetup,
 					pythonHighlighting(),
-					keymap.of([indentWithTab])
+					keymap.of([indentWithTab]) // about accessibility: https://codemirror.net/6/examples/tab/
 				]
 			}),
 			parent: editorContainer.current as HTMLElement

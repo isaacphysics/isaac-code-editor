@@ -1,13 +1,14 @@
 import {Editor} from "./Editor";
 import {RunButton} from "./RunButton";
 import {OutputTerminal} from "./OutputTerminal";
-import React, {useRef, useState} from "react";
-import { runCode } from "./Python";
-import {Feedback} from "./FeedbackBanner";
+import React, {useState} from "react";
+import {doChecks, runCode} from "./Python";
+import {useDispatch} from "react-redux";
+import {setFeedback, setRunning} from "./redux/FeedbackStore";
 
 const terminalInitialText = "Program output:\n\n";
 
-export const Sandbox = (props: {initialCode: string}) => {
+export const Sandbox = (props: {initialCode: string, test: {functionName: string, tests: any[]}, submitAnswer: (results: any[]) => void}) => {
 	// editor code
 	let getCode: () => string;
 
@@ -22,20 +23,26 @@ export const Sandbox = (props: {initialCode: string}) => {
 		setTerminalOutput(() => terminalInitialText);
 	}
 
-	// feedback popup
-	let handleFeedback = useRef((feedback: Feedback) => {});
+	// feedback
+	const dispatch = useDispatch();
 
+	// handle clicking on run button
 	const handleRunPython = () => {
 		clearTerminalOutput();
+		dispatch(setRunning());
 		runCode(getCode(),
 			handleTerminalOutput,
-			() => {},
-			(err: string) => handleFeedback.current({feedback: err, error: true}));
-	}
+			() => {
+				const testResult = doChecks(props.test.functionName, props.test.tests);
+				if(!testResult.success) dispatch(setFeedback({success: false, message: testResult.message!}));
+				else props.submitAnswer(testResult.results!);
+			},
+			(err: string) => dispatch(setFeedback({success: false, message: err}))
+		)};
 
 	return <>
 		<Editor initialCode={props.initialCode} setGetCodeFunction={(getCodeFunction) => getCode = getCodeFunction} />
 		<RunButton handleClick={handleRunPython} />
-		<OutputTerminal output={terminalOutput} setHandleFeedback={(_handleFeedback: (feedback: Feedback) => void) => handleFeedback.current = _handleFeedback} />
+		<OutputTerminal output={terminalOutput} />
 	</>
 }

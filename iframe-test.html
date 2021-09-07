@@ -1,3 +1,6 @@
+<!--HTML file to test the iframe without having to launch the frontend
+    Lets you see what the editor sent back to the server and send a
+    custom feedback message back to the editor -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,24 +11,23 @@
       width: 690px;
       height: 30rem;
       border: none;
-      -ms-zoom: 1.25;
-      -moz-transform: scale(1.25);
-      -moz-transform-origin: 0 0;
-      -o-transform: scale(1.25);
-      -o-transform-origin: 0 0;
-      -webkit-transform: scale(1.25);
-      -webkit-transform-origin: 0 0;
     }
   </style>
 </head>
 <body>
   <iframe src="http://localhost:3000" id="code-sandbox" onload="sendQuestion()"></iframe>
+  <div id="submission">Waiting for submission...</div>
+  <input id="feedback" value="Feedback message">
+  <button onclick="sendCorrect()">Send correct</button>
+  <button onclick="sendIncorrect()">Send incorrect</button>
   <script>
       const functionName = "square",
           question = "Create a function `square` that takes a parameter `x` and returns its square.",
-          intiCode = "def square(x):\n  # Your code here",
+          initCode = "def square(x):\n  # Your code here",
           tests = [[3], [5], [0], [-2]],
           correct = [9, 25, 0, 4];
+
+      let lastResponse;
 
       function sendPostMessage(obj) {
           const sandbox = document.getElementById("code-sandbox");
@@ -34,19 +36,34 @@
 
       function sendQuestion() {
           sendPostMessage({
-              // question: question,
-              code: intiCode,
-              // tests: tests,
-              // functionName: functionName
+              code: initCode,
+              tests: tests,
+              functionName: functionName
           });
       }
 
-      window.addEventListener('message', e => {
+      function sendCorrect() {
+          sendPostMessage({
+              success: true,
+              message: document.getElementById("feedback").value
+          });
+      }
+
+      function sendIncorrect() {
+          sendPostMessage({
+              success: false,
+              message: document.getElementById("feedback").value
+          });
+      }
+
+      function checkLastResponse() {
+          if(!lastResponse) return;
+
           let success = true;
           let message = "Congrats! You passed the test.";
           for (let i = 0; i < correct.length; i++) {
-              if(e.data[i] !== correct[i]) {
-                  message = `"square(${tests[i][0]})" returns ${e.data[[i]]} instead of ${correct[i]}!`;
+              if(lastResponse[i] !== correct[i]) {
+                  message = `"square(${tests[i][0]})" returns ${lastResponse[i]} instead of ${correct[i]}!`;
                   success = false;
                   break;
               }
@@ -55,6 +72,12 @@
               success: success,
               message: message
           });
+      }
+
+      window.addEventListener('message', e => {
+          const feedbackDiv = document.getElementById("submission");
+          lastResponse = e.data;
+          feedbackDiv.innerHTML = "Received response: " + e.data + " <button onclick=\"checkLastResponse()\">Auto check</button>";
       });
   </script>
 </body>
