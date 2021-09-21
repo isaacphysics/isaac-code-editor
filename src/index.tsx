@@ -5,7 +5,7 @@ import "./scss/cs/isaac.scss";
 import { Sandbox } from './app/Sandbox';
 
 import {Provider} from 'react-redux';
-import {feedbackStore, setFeedback} from "./app/redux/FeedbackStore";
+import {initializeEditor, reduxStore, setFeedback} from "./app/redux/ReduxStore";
 
 window.addEventListener("message", (event) => {
 	// Do we trust the sender of this message?
@@ -15,22 +15,39 @@ window.addEventListener("message", (event) => {
 	}
 
 	if (event.data) {
-		if(event.data.code) {
-			const submitAnswer = (results: any[]) => {
-				// @ts-ignore typescript doesn't believe me
-				event.source.postMessage(results, event.origin);
-			}
+		console.log("received data", event.data);
 
-			ReactDOM.render(
-				<Provider store={feedbackStore}>
-					<Sandbox initialCode={event.data.code}
-									 test={{functionName: event.data.functionName, tests: event.data.tests}}
-											   submitAnswer={submitAnswer}/>
-				</Provider>,
-				document.getElementById("root")
-			);
-		} else if(event.data.message) {
-			feedbackStore.dispatch(setFeedback({success: event.data.success, message: event.data.message}));
+		/** The editor can receive two types of messages
+		 * Initial messages, used to pass the initial code in the editor and the test to perform
+		 * {
+		 *     type: "INIT",
+		 *     code: "# Your code here",
+		 *     test: "checkerOutput = [1, 2, 3, 5]"
+		 * }
+		 *
+		 * Feedback messages, to indicate whether the student was correct or not
+		 * {
+		 *     type: "FEEDBACK",
+		 *     studentSucceeded: true,
+		 *     message: "Congratulations, you passed the test!"
+		 * }
+		 */
+
+		if(event.data.type === "INIT") {
+			const submitAnswer = (checkerOutput: string) => {
+				// @ts-ignore typescript doesn't believe me
+				event.source.postMessage({checkerOutput}, event.origin);
+			}
+			reduxStore.dispatch(initializeEditor(event.data.code, event.data.test, submitAnswer));
+		} else if(event.data.type === "FEEDBACK") {
+			reduxStore.dispatch(setFeedback({studentSucceeded: event.data.studentSucceeded, message: event.data.message}));
 		}
 	}
 }, false);
+
+ReactDOM.render(
+	<Provider store={reduxStore}>
+		<Sandbox />
+	</Provider>,
+	document.getElementById("root")
+);

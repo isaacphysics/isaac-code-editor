@@ -21,11 +21,9 @@
   <button onclick="sendCorrect()">Send correct</button>
   <button onclick="sendIncorrect()">Send incorrect</button>
   <script>
-      const functionName = "square",
-          question = "Create a function `square` that takes a parameter `x` and returns its square.",
-          initCode = "def square(x):\n  # Your code here",
-          tests = [[3], [5], [0], [-2]],
-          correct = [9, 25, 0, 4];
+      // const initCode = "def square(x):\n  # Your code here",
+      const initCode = "def square(x):\n  return x ** 2",
+            test = "#debugger\ncheckerResult = str([square(2), square(8), square(1), square(-3)])";
 
       let lastResponse;
 
@@ -36,30 +34,35 @@
 
       function sendQuestion() {
           sendPostMessage({
+            type: "INIT",
               code: initCode,
-              tests: tests,
-              functionName: functionName
+              test: test
           });
       }
 
       function sendCorrect() {
           sendPostMessage({
-              success: true,
-              message: document.getElementById("feedback").value
+            type: "FEEDBACK",
+            studentSucceeded: true,
+            message: document.getElementById("feedback").value
           });
       }
 
       function sendIncorrect() {
           sendPostMessage({
-              success: false,
-              message: document.getElementById("feedback").value
+            type: "FEEDBACK",
+            studentSucceeded: false,
+            message: document.getElementById("feedback").value
           });
       }
 
       function checkLastResponse() {
           if(!lastResponse) return;
 
-          let success = true;
+          if(lastResponse === "[4, 64, 1, 9]") sendCorrect();
+          else sendIncorrect();
+
+          /*let success = true;
           let message = "Congrats! You passed the test.";
           for (let i = 0; i < correct.length; i++) {
               if(lastResponse[i] !== correct[i]) {
@@ -71,13 +74,15 @@
           sendPostMessage({
               success: success,
               message: message
-          });
+          });*/
       }
 
       window.addEventListener('message', e => {
+        if (e.data.hasOwnProperty("checkerOutput")) {
           const feedbackDiv = document.getElementById("submission");
-          lastResponse = e.data;
-          feedbackDiv.innerHTML = "Received response: " + e.data + " <button onclick=\"checkLastResponse()\">Auto check</button>";
+          lastResponse = e.data.checkerOutput;
+          feedbackDiv.innerHTML = "Received response: " + e.data.checkerOutput + " <button onclick=\"checkLastResponse()\">Auto check</button>";
+        }
       });
   </script>
 </body>

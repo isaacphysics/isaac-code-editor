@@ -1,67 +1,48 @@
 // @ts-ignore skulpt doesn't have typings
 import Sk from "skulpt"
+import {Feedback} from "./redux/ReduxStore";
 
 // transpile and run a snippet of python code
-export function runCode(code: string, handleOutput: (output: string) => void,
-									  handleSuccess: () => void,
-									  handleError: (error: string) => void) {
-	Sk.killableWhile = true;
+export function runCode(code: string, handleOutput: (output: string) => void, handleSuccess: () => void,
+									  handleError: (error: string) => void, skulptOptions={}) {
 	Sk.configure({
 		output: handleOutput,
 		read: builtinRead,
 		execLimit: 2000, // 2 seconds
 		killableWhile: true,
-		killableFor: true
+		killableFor: true,
+		...skulptOptions
 	});
-	const myPromise = Sk.misceval.asyncToPromise(function () {
-		return Sk.importMainWithBody("<stdin>", false, code, true);
-	});
-	myPromise.then(() => {
-			handleSuccess();
-		},
-		(err: any) => {
-			switch(err.tp$name) {
-				case "TimeLimitError":
-					handleError("Your program took too long to execute! Are there any infinite loops?");
-					break;
-				default:
-					handleError(err.toString());
-			}
+	Sk.misceval.asyncToPromise(
+		() => {
+			return Sk.importMainWithBody("<stdin>", false, code, true)
 		}
-	);
+	).then(() => {
+		handleSuccess();
+	}).catch((err: any) => {
+		switch(err.tp$name) {
+			case "TimeLimitError":
+				handleError("Your program took too long to execute! Are there any infinite loops?");
+				break;
+			default:
+				handleError(err.toString());
+		}
+	});
 }
 
-// fun a certain function with a series of arguments to see if output matches
-// returns results if succeded, error message otherwise
-export function doChecks(functionName: string, tests: any[]): {success: boolean, message?: string, results?: any[]} {
-	// configure skulpt
-	Sk.configure({
-		output: console.log,
-		execLimit: 200
-	});
-
-	if(functionName in Sk.globals) {
-		// the function to test
-		const func = Sk.globals[functionName].tp$call;
-		const results = [];
-
-		// for every test
-		for (let i = 0; i < tests.length; i++) {
-			try {
-				// run the python function and get result
-				const result = func(tests[i].map((v: any) => jsVariableToPython(v))).v;
-				results.push(result);
-			} catch (e) { // error in python code
-				let errMessage = e.toString();
-				if(errMessage.startsWith("ExternalError: TypeError: Cannot read property ")) // make error message more human-readable
-					errMessage = `NameError: name '${errMessage.split("'")[1]}' is not defined on line ${errMessage.split(' ').pop()}`
-				return {success: false, message: errMessage};
-			}
+export function doChecks(test: string): Promise<{checkerSucceeded: boolean, checkerOutput: string}> {
+	return new Promise((resolve, reject) => {
+		const handleSuccess = () => {
+			// check if "correct" variable is true or false
+			const checkerOutput = Sk.globals["checkerResult"].v.toString();
+			console.log(checkerOutput)
+			resolve({checkerSucceeded: true, checkerOutput});
 		}
-		return {success: true, results: results};
-	} else {
-		return {success: false, message: `Can't find a function called "square"!`};
-	}
+		const handleError = (error: string) => {
+			resolve({checkerSucceeded: false, checkerOutput: error});
+		}
+		runCode(test, console.log, handleSuccess, handleError, {retainGlobals: true});
+	});
 }
 
 function builtinRead(x: string) {

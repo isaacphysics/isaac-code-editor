@@ -3,12 +3,12 @@ import {RunButton} from "./RunButton";
 import {OutputTerminal} from "./OutputTerminal";
 import React, {useState} from "react";
 import {doChecks, runCode} from "./Python";
-import {useDispatch} from "react-redux";
-import {setFeedback, setRunning} from "./redux/FeedbackStore";
+import {useDispatch, useSelector} from "react-redux";
+import {setFeedback, setRunning} from "./redux/ReduxStore";
 
 const terminalInitialText = "Program output:\n\n";
 
-export const Sandbox = (props: {initialCode: string, test: {functionName: string, tests: any[]}, submitAnswer: (results: any[]) => void}) => {
+export const Sandbox = () => {
 	// editor code
 	let getCode: () => string;
 
@@ -27,21 +27,36 @@ export const Sandbox = (props: {initialCode: string, test: {functionName: string
 	const dispatch = useDispatch();
 
 	// handle clicking on run button
+	const loaded = useSelector((state: any) => state?.loaded);
+	const testCode = useSelector((state: any) => state?.test);
+	const submitAnswer = useSelector((state: any) => state?.submitAnswer);
+
+	const handleSuccess = () => {
+		doChecks(testCode).then(result => {
+			if (result.checkerSucceeded) {
+				// dispatch(setFeedback({studentSucceeded: true, message: feedback.message}))
+				submitAnswer(result.checkerOutput);
+			} else {
+				dispatch(setFeedback({studentSucceeded: false, message: result.checkerOutput}));
+			}
+		});
+	}
+
+	const handleError = (err: string) => dispatch(setFeedback({studentSucceeded: false, message: err}))
+
 	const handleRunPython = () => {
+		if(!loaded) return;
 		clearTerminalOutput();
 		dispatch(setRunning());
 		runCode(getCode(),
 			handleTerminalOutput,
-			() => {
-				const testResult = doChecks(props.test.functionName, props.test.tests);
-				if(!testResult.success) dispatch(setFeedback({success: false, message: testResult.message!}));
-				else props.submitAnswer(testResult.results!);
-			},
-			(err: string) => dispatch(setFeedback({success: false, message: err}))
+			handleSuccess,
+			handleError,
+			{retainGlobals: false}
 		)};
 
 	return <>
-		<Editor initialCode={props.initialCode} setGetCodeFunction={(getCodeFunction) => getCode = getCodeFunction} />
+		<Editor setGetCodeFunction={(getCodeFunction) => getCode = getCodeFunction} />
 		<RunButton handleClick={handleRunPython} />
 		<OutputTerminal output={terminalOutput} />
 	</>
