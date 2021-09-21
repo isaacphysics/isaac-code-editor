@@ -1,6 +1,5 @@
 // @ts-ignore skulpt doesn't have typings
 import Sk from "skulpt"
-import {Feedback} from "./redux/ReduxStore";
 
 // transpile and run a snippet of python code
 export function runCode(code: string, handleOutput: (output: string) => void, handleSuccess: () => void,
@@ -49,15 +48,4 @@ function builtinRead(x: string) {
 	if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
 		throw new Error("File not found: '" + x + "'");
 	return Sk.builtinFiles["files"][x];
-}
-
-// convert a javascript variable to one Skulpt can use in python code
-function jsVariableToPython(v: any) {
-	if(typeof v === "number")
-		return new Sk.builtin.int_(v);
-	if(typeof v === "string")
-		return new Sk.builtin.str(v);
-	if(typeof v === "boolean")
-		return new Sk.builtin.bool(v);
-	return {v: v};
 }
