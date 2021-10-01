@@ -29,8 +29,16 @@ export function runCode(code: string, handleOutput: (output: string) => void, ha
 	});
 }
 
-export function doChecks(test: string): Promise<{checkerSucceeded: boolean, checkerOutput: string}> {
+export function runSetupCode(setupCode: string) {
 	return new Promise((resolve, reject) => {
+		runCode(setupCode, console.log, () => resolve(null), reject, {retainGlobals: false});
+	});
+}
+
+export function doChecks(testCode: string, studentCode: string, studentOutput: string): Promise<{checkerSucceeded: boolean, checkerOutput: string}> {
+	Sk.globals.studentCode = new Sk.builtin.str(studentCode);
+	Sk.globals.studentOutput = new Sk.builtin.str(studentOutput);
+	return new Promise((resolve) => {
 		const handleSuccess = () => {
 			// check if "correct" variable is true or false
 			const checkerOutput = Sk.globals["checkerResult"].v.toString();
@@ -38,9 +46,10 @@ export function doChecks(test: string): Promise<{checkerSucceeded: boolean, chec
 			resolve({checkerSucceeded: true, checkerOutput});
 		}
 		const handleError = (error: string) => {
-			resolve({checkerSucceeded: false, checkerOutput: error});
+			resolve({checkerSucceeded: false, checkerOutput: error.replace(/ on line \d+/, "")});
 		}
-		runCode(test, console.log, handleSuccess, handleError, {retainGlobals: true});
+		runCode(testCode, console.log, handleSuccess, handleError, {retainGlobals: true});
+		//runCode("print(studentCode, studentOutput)", console.log, handleSuccess, handleError, {retainGlobals: true});
 	});
 }
 

@@ -13,6 +13,7 @@ export const reduxStore = configureStore({
 					...state,
 					loaded: true,
 					initCode: action.payload.initCode,
+					setupCode: action.payload.setupCode,
 					test: action.payload.test,
 					submitAnswer: action.payload.submitAnswer
 				}
@@ -36,7 +37,13 @@ export const reduxStore = configureStore({
 			default:
 				return state;
 		}
-	}
+	},
+	middleware: (getDefaultMiddleware) =>
+		getDefaultMiddleware({
+			serializableCheck: {
+				ignoredPaths: ['payload.submitAnswer', 'submitAnswer'],
+			},
+		}),
 });
 
 export const setFeedback = (feedback: Feedback) => {
@@ -58,11 +65,12 @@ export const setRunning = () => {
 	}
 }
 
-export const initializeEditor = (initCode: string, test: string, submitAnswer: (checkerOutput: string) => void) => {
+export const initializeEditor = (initCode: string, setupCode: string, test: string, submitAnswer: (checkerOutput: string) => void) => {
 	return {
 		type: "INITIAL_SETUP",
 		payload: {
 			initCode,
+			setupCode,
 			test,
 			submitAnswer
 		}

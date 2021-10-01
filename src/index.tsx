@@ -38,7 +38,7 @@ window.addEventListener("message", (event) => {
 				// @ts-ignore typescript doesn't believe me
 				event.source.postMessage({checkerOutput}, event.origin);
 			}
-			reduxStore.dispatch(initializeEditor(event.data.code, event.data.test, submitAnswer));
+			reduxStore.dispatch(initializeEditor(event.data.code, event.data.setup, event.data.test, submitAnswer));
 		} else if(event.data.type === "FEEDBACK") {
 			reduxStore.dispatch(setFeedback({studentSucceeded: event.data.studentSucceeded, message: event.data.message}));
 		}

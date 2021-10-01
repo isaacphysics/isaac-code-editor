@@ -23,7 +23,7 @@
   <script>
       // const initCode = "def square(x):\n  # Your code here",
       const initCode = "def square(x):\n  return x ** 2",
-            test = "#debugger\ncheckerResult = str([square(2), square(8), square(1), square(-3)])";
+            test = "checkerResult = str([square(2), square(8), square(1), square(-3)])";
 
       let lastResponse;
 
@@ -40,19 +40,19 @@
           });
       }
 
-      function sendCorrect() {
+      function sendCorrect(message="") {
           sendPostMessage({
             type: "FEEDBACK",
             studentSucceeded: true,
-            message: document.getElementById("feedback").value
+            message: message || document.getElementById("feedback").value
           });
       }
 
-      function sendIncorrect() {
+      function sendIncorrect(message="") {
           sendPostMessage({
             type: "FEEDBACK",
             studentSucceeded: false,
-            message: document.getElementById("feedback").value
+            message: message || document.getElementById("feedback").value
           });
       }
 
