@@ -1,55 +1,57 @@
 // @ts-ignore skulpt doesn't have typings
 import Sk from "skulpt"
+import {noop} from "./services/utils";
 
-// transpile and run a snippet of python code
-export function runCode(code: string, handleOutput: (output: string) => void, handleSuccess: () => void,
-									  handleError: (error: string) => void, skulptOptions={}) {
+// Transpile and run a snippet of python code
+export function runCode(code: string, printOutput: (output: string) => void, handleSuccess: (finalOutput: string) => void,
+									  printError: (error: string) => void, skulptOptions= {}) {
+
+	let finalOutput = "";
+
 	Sk.configure({
-		output: handleOutput,
+		output: (output: string) => {
+			printOutput(output);
+			finalOutput += output;
+		},
 		read: builtinRead,
 		execLimit: 2000, // 2 seconds
 		killableWhile: true,
 		killableFor: true,
 		...skulptOptions
 	});
-	Sk.misceval.asyncToPromise(
-		() => {
-			return Sk.importMainWithBody("<stdin>", false, code, true)
-		}
+	return Sk.misceval.asyncToPromise(
+		() => Sk.importMainWithBody("<stdin>", false, code, true)
 	).then(() => {
-		handleSuccess();
+		handleSuccess(finalOutput);
 	}).catch((err: any) => {
 		switch(err.tp$name) {
 			case "TimeLimitError":
-				handleError("Your program took too long to execute! Are there any infinite loops?");
+				printError("Your program took too long to execute! Are there any infinite loops?");
 				break;
 			default:
-				handleError(err.toString());
+				printError(err.toString());
 		}
 	});
 }
 
-export function runSetupCode(setupCode: string) {
+export function runSetupCode(setupCode: string, printOutput: (output: string) => void) {
 	return new Promise((resolve, reject) => {
-		runCode(setupCode, console.log, () => resolve(null), reject, {retainGlobals: false});
+		runCode(setupCode, printOutput, resolve, reject, {retainGlobals: false});
 	});
 }
 
-export function doChecks(testCode: string, studentCode: string, studentOutput: string): Promise<{checkerSucceeded: boolean, checkerOutput: string}> {
-	Sk.globals.studentCode = new Sk.builtin.str(studentCode);
-	Sk.globals.studentOutput = new Sk.builtin.str(studentOutput);
-	return new Promise((resolve) => {
+export function doChecks(testCode: string, mainCode: string, output: string): Promise<string> {
+	Sk.globals.studentCode = new Sk.builtin.str(mainCode);
+	Sk.globals.studentOutput = new Sk.builtin.str(output);
+	return new Promise((resolve, reject) => {
 		const handleSuccess = () => {
 			// check if "correct" variable is true or false
-			const checkerOutput = Sk.globals["checkerResult"].v.toString();
-			console.log(checkerOutput)
-			resolve({checkerSucceeded: true, checkerOutput});
+			resolve(Sk.globals["checkerResult"].v.toString());
 		}
 		const handleError = (error: string) => {
-			resolve({checkerSucceeded: false, checkerOutput: error.replace(/ on line \d+/, "")});
+			reject(error.replace(/ on line \d+/, ""));
 		}
-		runCode(testCode, console.log, handleSuccess, handleError, {retainGlobals: true});
-		//runCode("print(studentCode, studentOutput)", console.log, handleSuccess, handleError, {retainGlobals: true});
+		runCode(testCode, noop, handleSuccess, handleError, {retainGlobals: true});
 	});
 }
 

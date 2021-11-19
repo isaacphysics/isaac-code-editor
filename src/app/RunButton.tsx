@@ -1,10 +1,7 @@
-import {useSelector} from "react-redux";
+interface RunButtonProps {onClick: () => void, running: boolean, loaded: boolean}
 
-export const RunButton = (props: {handleClick: () => void}) => {
-	const loaded = useSelector((state: any) => state?.loaded);
-	const running = useSelector((state: any) => state?.running);
-
+export const RunButton = ({onClick, running, loaded}: RunButtonProps) => {
 	return <div className={"text-center"}>
-		<button className={"run-button btn btn-secondary"} onClick={props.handleClick} disabled={!loaded || running}>{running ? "Running..." : "Run"}</button>
+		<button className={"run-button btn btn-secondary"} onClick={onClick} disabled={!loaded || running}>{running ? "Running..." : "Run"}</button>
 	</div>
 }

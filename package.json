@@ -13,6 +13,7 @@
     "@types/node": "^12.20.20",
     "@types/react": "^17.0.19",
     "@types/react-dom": "^17.0.9",
+    "@types/uuid": "^3.4.6",
     "bootstrap": "^5.1.0",
     "bootstrap-block-grid": "^1.1.7",
     "react": "^17.0.2",
@@ -22,7 +23,8 @@
     "saas": "^1.0.0",
     "sass": "^1.38.1",
     "skulpt": "^1.2.0",
-    "typescript": "^4.3.5",
+    "typescript": "^4.4.4",
+    "uuid": "^3.3.3",
     "web-vitals": "^1.1.2"
   },
   "scripts": {

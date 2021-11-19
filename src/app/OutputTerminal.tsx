@@ -1,11 +1,14 @@
-import {FeedbackBanner} from "./FeedbackBanner";
-import {useSelector} from "react-redux";
+interface OutputTerminalProps {output?: string; feedbackMessage?: string, setFeedbackMessage?: (fm?: string) => void, succeeded?: boolean}
 
-export const OutputTerminal = (props: {output: string}) => {
-	const feedback = useSelector((state: any) => state?.feedback);
-
+export const OutputTerminal = ({output, feedbackMessage, setFeedbackMessage, succeeded}: OutputTerminalProps) => {
 	return <pre className="output-terminal bg-black text-white">
-		{feedback && <FeedbackBanner />}
-		<div className={"output-text p-2"}>{props.output}</div>
+
+		{feedbackMessage &&
+		// Feedback banner
+		<div className={"feedback-banner w-100 p-2 " + (succeeded ? "feedback-success" : "feedback-error")}>
+			<button className={"feedback-button"} onClick={() => setFeedbackMessage && setFeedbackMessage(undefined)}>&times;</button>
+			{feedbackMessage}
+		</div>}
+		<div className={"output-text p-2"}>{output}</div>
 	</pre>
 }

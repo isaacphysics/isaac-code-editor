@@ -34,24 +34,25 @@
 
       function sendQuestion() {
           sendPostMessage({
-            type: "INIT",
-              code: initCode,
-              test: test
+            type: "initialise",
+            code: initCode,
+            setup: "",
+            test: test
           });
       }
 
       function sendCorrect(message="") {
           sendPostMessage({
-            type: "FEEDBACK",
-            studentSucceeded: true,
+            type: "feedback",
+            succeeded: true,
             message: message || document.getElementById("feedback").value
           });
       }
 
       function sendIncorrect(message="") {
           sendPostMessage({
-            type: "FEEDBACK",
-            studentSucceeded: false,
+            type: "feedback",
+            succeeded: false,
             message: message || document.getElementById("feedback").value
           });
       }
@@ -59,29 +60,22 @@
       function checkLastResponse() {
           if(!lastResponse) return;
 
-          if(lastResponse === "[4, 64, 1, 9]") sendCorrect();
-          else sendIncorrect();
-
-          /*let success = true;
-          let message = "Congrats! You passed the test.";
-          for (let i = 0; i < correct.length; i++) {
-              if(lastResponse[i] !== correct[i]) {
-                  message = `"square(${tests[i][0]})" returns ${lastResponse[i]} instead of ${correct[i]}!`;
-                  success = false;
-                  break;
-              }
+          if(lastResponse === "[4, 64, 1, 9]") {
+            sendCorrect();
+          } else {
+            sendIncorrect();
           }
-          sendPostMessage({
-              success: success,
-              message: message
-          });*/
       }
 
       window.addEventListener('message', e => {
-        if (e.data.hasOwnProperty("checkerOutput")) {
+        if (e.data.type === "log") {
+          console.log(e.data.message);
+        }
+
+        if (e.data.type === "feedback") {
           const feedbackDiv = document.getElementById("submission");
-          lastResponse = e.data.checkerOutput;
-          feedbackDiv.innerHTML = "Received response: " + e.data.checkerOutput + " <button onclick=\"checkLastResponse()\">Auto check</button>";
+          lastResponse = e.data.message;
+          feedbackDiv.innerHTML = "Received response: " + e.data.message + " <button onclick=\"checkLastResponse()\">Auto check</button>";
         }
       });
   </script>
