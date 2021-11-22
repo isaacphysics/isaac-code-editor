@@ -1,13 +1,14 @@
 import React, {ForwardedRef, useEffect, useImperativeHandle, useRef, useState} from "react";
 
 import {EditorView, EditorState, basicSetup} from "@codemirror/basic-setup";
-import {python as pythonHighlighting} from "@codemirror/lang-python";
+import {python} from "@codemirror/lang-python";
 import {keymap, ViewUpdate} from "@codemirror/view";
 import {indentWithTab} from "@codemirror/commands";
+import {pythonHighlightStyle, pythonTheme} from "./pythonTheme";
 
-interface EditorProps {initCode?: string, setEditorCode: (newCode?: string) => void}
+interface EditorProps {initCode?: string}
 
-export const Editor = React.forwardRef(({initCode, setEditorCode}: EditorProps, ref: ForwardedRef<{getCode: () => string | undefined}>) => {
+export const Editor = React.forwardRef(({initCode}: EditorProps, ref: ForwardedRef<{getCode: () => string | undefined}>) => {
 
 	const [editor, setEditor] = useState<EditorView | null>(null);
 
@@ -28,18 +29,19 @@ export const Editor = React.forwardRef(({initCode, setEditorCode}: EditorProps, 
 			editor.destroy();
 		}
 
-		setEditorCode(initCode);
-
 		setEditor(new EditorView({
 			state: EditorState.create({
-				doc: initCode || "Loading...",
+				doc: initCode,
 				extensions: [
 					basicSetup,
-					pythonHighlighting(),
+					python(),
+					pythonTheme,
+					pythonHighlightStyle,
 					keymap.of([indentWithTab]), // about accessibility: https://codemirror.net/6/examples/tab/
 					EditorView.updateListener.of((v: ViewUpdate) => {
 						if (v.docChanged) {
-							setEditorCode(v.state.doc.toString());
+							// callback if the codemirror doc changes
+							// editor?.state.doc.lines = number of lines
 						}
 					})
 				]
@@ -48,5 +50,5 @@ export const Editor = React.forwardRef(({initCode, setEditorCode}: EditorProps, 
 		}));
 	}, [initCode]);
 
-	return <pre className="editor m-1" ref={editorRef}/>
+	return <pre className="editor" ref={editorRef}/>
 });

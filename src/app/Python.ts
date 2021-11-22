@@ -45,7 +45,6 @@ export function doChecks(testCode: string, mainCode: string, output: string): Pr
 	Sk.globals.studentOutput = new Sk.builtin.str(output);
 	return new Promise((resolve, reject) => {
 		const handleSuccess = () => {
-			// check if "correct" variable is true or false
 			resolve(Sk.globals["checkerResult"].v.toString());
 		}
 		const handleError = (error: string) => {

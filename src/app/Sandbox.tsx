@@ -5,27 +5,32 @@ import React, {useEffect, useRef, useState} from "react";
 import {doChecks, runCode, runSetupCode} from "./Python";
 import {useIFrameMessages} from "./services/utils";
 
-const appLocation = "http://localhost:8003";
 const terminalInitialText = "Program output:\n";
 const uid = window.location.hash.substring(1);
 
 export interface Feedback {
-	success: boolean;
+	succeeded: boolean;
 	message: string;
+}
+
+export interface PredefinedCode {
+	setup: string;
+	init: string;
+	test: string;
 }
 
 export const Sandbox = () => {
 	const [loaded, setLoaded] = useState<boolean>(false);
-	const [setupCode, setSetupCode] = useState<string>();
-	const [initCode, setInitCode] = useState<string>();
-	const [testCode, setTestCode] = useState<string>();
 	const [running, setRunning] = useState<boolean>(false);
-	const [editorCode, setEditorCode] = useState<string>();
 
-	const [succeeded, setSucceeded] = useState<boolean>(false);
-	const [feedbackMessage, setFeedbackMessage] = useState<string | undefined>(undefined);
+	const [feedback, setFeedback] = useState<Feedback>();
+	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>({
+		setup: "",
+		init: "# Loading...",
+		test: ""
+	});
 
-	const {receivedData, sendMessage} = useIFrameMessages(appLocation, uid);
+	const {receivedData, sendMessage} = useIFrameMessages(uid);
 	
 	useEffect(() => {
 		if (undefined === receivedData) return;
@@ -46,13 +51,17 @@ export const Sandbox = () => {
 		 * }
 		 */
 		if (receivedData.type === "initialise") {
-			setInitCode(receivedData?.code as string | undefined);
-			setSetupCode(receivedData?.setup as string | undefined);
-			setTestCode(receivedData?.test as string | undefined);
+			setPredefinedCode({
+				setup: (receivedData?.setup || "") as string,
+				init: (receivedData?.code || "# Your code here") as string,
+				test: (receivedData?.test || "") as string
+			});
 			setLoaded(true);
 		} else if(receivedData.type === "feedback") {
-			setSucceeded(receivedData.succeeded as boolean);
-			setFeedbackMessage(receivedData?.message as string | undefined);
+			setFeedback({
+				succeeded: receivedData.succeeded as boolean,
+				message: receivedData.message as string
+			});
 		}
 	}, [receivedData]);
 
@@ -63,47 +72,47 @@ export const Sandbox = () => {
 	}
 
 	const clearTerminalOutput = () => {
+		setFeedback(undefined);
 		setTerminalOutput(terminalInitialText);
 	}
 
 	const handleSuccess = (finalOutput: string) => {
-		// We know that editorCode must be populated at this point
-		doChecks(testCode || "", editorCode as string, finalOutput).then((message: string) => {
-			sendMessage({type: "feedback", succeeded: true, message});
+		doChecks(predefinedCode.test, editorRef?.current?.getCode() || "", finalOutput).then((result: string) => {
+			sendMessage({type: "checker", result: result});
 		}).catch((error: string) => {
-			sendMessage({type: "feedback", succeeded: false, message: error});
+			// This only happens if the checking code fails to compile/run correctly
+			sendMessage({type: "checkerFail", message: error});
 		});
 	};
 
 	const printError = (error: string) => {
-		setSucceeded(false);
-		setFeedbackMessage(error);
+		setFeedback({
+			succeeded: false,
+			message: error
+		});
 	}
 
 	const editorRef = useRef<{getCode: () => string | undefined}>(null);
 
 	const handleRunPython = () => {
-
 		if (!loaded) return;
 
 		clearTerminalOutput();
 		setRunning(true);
 
-		runSetupCode(setupCode || "", appendToTerminalOutput)
-		.then(() => {
+		runSetupCode(predefinedCode.setup, appendToTerminalOutput).then(() => {
 			return runCode(editorRef?.current?.getCode() || "",
 				appendToTerminalOutput,
 				handleSuccess,
 				printError,
 				{retainGlobals: false}
 			)
-		})
-		.then(() => setRunning(false));
+		}).then(() => setRunning(false));
 	}
 
 	return <>
-		<Editor initCode={initCode} setEditorCode={setEditorCode} ref={editorRef} />
+		<Editor initCode={predefinedCode.init} ref={editorRef} />
 		<RunButton running={running} loaded={loaded} onClick={handleRunPython} />
-		<OutputTerminal output={terminalOutput} succeeded={succeeded} feedbackMessage={feedbackMessage} setFeedbackMessage={setFeedbackMessage} />
+		<OutputTerminal output={terminalOutput} succeeded={feedback?.succeeded} feedbackMessage={feedback?.message} clearFeedback={() => setFeedback(undefined)} />
 	</>
 }
