@@ -32,7 +32,7 @@ export function useIFrameMessages(uid: string, iFrameRef?: RefObject<HTMLIFrameE
             // This should only happen if undefined foreignDomain and no message is received yet
             console.log("If foreignDomain is undefined, useIFrameMessages can only reply to messages (i.e. can send only after the first message has been received)");
         }
-    }, [targetDomainSource, targetDomainOrigin, uidRef]);
+    }, [targetDomainSource, targetDomainOrigin, uidRef, iFrameRef]);
 
     const handleReceive = useCallback(e => {
         // Make sure we ignore messages from this domain
@@ -54,7 +54,7 @@ export function useIFrameMessages(uid: string, iFrameRef?: RefObject<HTMLIFrameE
                 e.source.postMessage(replyCallback(e.data));
             }
         }
-    },[uidRef, replyCallback, setReceivedData, iFrameRef, targetDomainSource, setTargetDomainSource, setTargetDomainOrigin]);
+    },[uidRef, replyCallback, setReceivedData, targetDomainSource, setTargetDomainSource, setTargetDomainOrigin]);
 
     useEffect(() => {
         window.addEventListener('message', handleReceive);

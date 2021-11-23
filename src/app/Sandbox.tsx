@@ -1,7 +1,7 @@
 import {Editor} from "./Editor";
 import {RunButton} from "./RunButton";
 import {OutputTerminal} from "./OutputTerminal";
-import React, {useEffect, useRef, useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import {doChecks, runCode, runSetupCode} from "./Python";
 import {useIFrameMessages} from "./services/utils";
 
@@ -31,6 +31,14 @@ export const Sandbox = () => {
 	});
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
+
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	const updateHeight = useCallback(() => {
+		if (containerRef?.current && containerRef?.current?.scrollHeight !== 0) {
+			sendMessage({type: "resize", height: containerRef?.current?.scrollHeight});
+		}
+	}, [containerRef, sendMessage]);
 	
 	useEffect(() => {
 		if (undefined === receivedData) return;
@@ -54,9 +62,10 @@ export const Sandbox = () => {
 			setPredefinedCode({
 				setup: (receivedData?.setup || "") as string,
 				init: (receivedData?.code || "# Your code here") as string,
-				test: (receivedData?.test || "") as string
+				test: (receivedData?.test || "checkerResult = ''") as string
 			});
 			setLoaded(true);
+			updateHeight();
 		} else if(receivedData.type === "feedback") {
 			setFeedback({
 				succeeded: receivedData.succeeded as boolean,
@@ -78,6 +87,7 @@ export const Sandbox = () => {
 
 	const handleSuccess = (finalOutput: string) => {
 		doChecks(predefinedCode.test, editorRef?.current?.getCode() || "", finalOutput).then((result: string) => {
+			updateHeight();
 			sendMessage({type: "checker", result: result});
 		}).catch((error: string) => {
 			// This only happens if the checking code fails to compile/run correctly
@@ -110,9 +120,9 @@ export const Sandbox = () => {
 		}).then(() => setRunning(false));
 	}
 
-	return <>
-		<Editor initCode={predefinedCode.init} ref={editorRef} />
+	return <div ref={containerRef}>
+		<Editor initCode={predefinedCode.init} ref={editorRef} updateHeight={updateHeight} />
 		<RunButton running={running} loaded={loaded} onClick={handleRunPython} />
 		<OutputTerminal output={terminalOutput} succeeded={feedback?.succeeded} feedbackMessage={feedback?.message} clearFeedback={() => setFeedback(undefined)} />
-	</>
+	</div>
 }

@@ -6,9 +6,9 @@ import {keymap, ViewUpdate} from "@codemirror/view";
 import {indentWithTab} from "@codemirror/commands";
 import {pythonHighlightStyle, pythonTheme} from "./pythonTheme";
 
-interface EditorProps {initCode?: string}
+interface EditorProps {initCode?: string; updateHeight: () => void}
 
-export const Editor = React.forwardRef(({initCode}: EditorProps, ref: ForwardedRef<{getCode: () => string | undefined}>) => {
+export const Editor = React.forwardRef(({initCode, updateHeight}: EditorProps, ref: ForwardedRef<{getCode: () => string | undefined}>) => {
 
 	const [editor, setEditor] = useState<EditorView | null>(null);
 
@@ -39,9 +39,9 @@ export const Editor = React.forwardRef(({initCode}: EditorProps, ref: ForwardedR
 					pythonHighlightStyle,
 					keymap.of([indentWithTab]), // about accessibility: https://codemirror.net/6/examples/tab/
 					EditorView.updateListener.of((v: ViewUpdate) => {
-						if (v.docChanged) {
-							// callback if the codemirror doc changes
-							// editor?.state.doc.lines = number of lines
+						if (v.startState.doc.lines !== v.state.doc.lines) {
+							// Send a height update if the number of lines change
+							updateHeight();
 						}
 					})
 				]
@@ -50,5 +50,5 @@ export const Editor = React.forwardRef(({initCode}: EditorProps, ref: ForwardedR
 		}));
 	}, [initCode]);
 
-	return <pre className="editor" ref={editorRef}/>
+	return <pre className="editor" ref={editorRef} />
 });

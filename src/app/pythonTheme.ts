@@ -5,6 +5,9 @@ export const pythonTheme = EditorView.theme({
     ".cm-gutters": {
         backgroundColor: "#FFFFFF"
     },
+    ".cm-line": {
+        paddingLeft: "7px"
+    },
     "&": {
         color: "#545454"
     },
