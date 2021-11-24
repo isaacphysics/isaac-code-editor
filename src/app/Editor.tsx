@@ -6,7 +6,7 @@ import {keymap, ViewUpdate} from "@codemirror/view";
 import {indentWithTab} from "@codemirror/commands";
 import {pythonHighlightStyle, pythonTheme} from "./pythonTheme";
 
-interface EditorProps {initCode?: string; updateHeight: () => void}
+interface EditorProps {initCode?: string; updateHeight: (editorLines: number) => void}
 
 export const Editor = React.forwardRef(({initCode, updateHeight}: EditorProps, ref: ForwardedRef<{getCode: () => string | undefined}>) => {
 
@@ -41,7 +41,7 @@ export const Editor = React.forwardRef(({initCode, updateHeight}: EditorProps, r
 					EditorView.updateListener.of((v: ViewUpdate) => {
 						if (v.startState.doc.lines !== v.state.doc.lines) {
 							// Send a height update if the number of lines change
-							updateHeight();
+							updateHeight(v.state.doc.lines);
 						}
 					})
 				]

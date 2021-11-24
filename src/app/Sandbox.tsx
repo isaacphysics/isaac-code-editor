@@ -19,6 +19,21 @@ export interface PredefinedCode {
 	test: string;
 }
 
+function convertRemToPixels(rem: number) {
+	return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
+}
+
+// TODO Find a better way to do this
+// Predefined heights for iframe height calculation
+// This is horrible but is needed so that the parent window can frame the editor properly
+// If the style changes at all this needs recalculating!
+const heightOfEditorLine = 19.6;
+const cmContentYPadding = 8;
+const editorYPaddingBorderAndMargin = 23 + 2 + 16;
+const buttonHeightAndYMargin = 50 + 16;
+const terminalHeight = convertRemToPixels(12);
+const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + buttonHeightAndYMargin + terminalHeight;
+
 export const Sandbox = () => {
 	const [loaded, setLoaded] = useState<boolean>(false);
 	const [running, setRunning] = useState<boolean>(false);
@@ -34,9 +49,9 @@ export const Sandbox = () => {
 
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	const updateHeight = useCallback(() => {
-		if (containerRef?.current && containerRef?.current?.scrollHeight !== 0) {
-			sendMessage({type: "resize", height: containerRef?.current?.scrollHeight});
+	const updateHeight = useCallback((editorLines?: number) => {
+		if (containerRef?.current && editorLines) {
+			sendMessage({type: "resize", height: heightOfEditorLine * editorLines + nonVariableHeight});
 		}
 	}, [containerRef, sendMessage]);
 	
@@ -64,8 +79,9 @@ export const Sandbox = () => {
 				init: (receivedData?.code || "# Your code here") as string,
 				test: (receivedData?.test || "checkerResult = ''") as string
 			});
+			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
+			updateHeight(numberOfLines);
 			setLoaded(true);
-			updateHeight();
 		} else if(receivedData.type === "feedback") {
 			setFeedback({
 				succeeded: receivedData.succeeded as boolean,
@@ -87,7 +103,6 @@ export const Sandbox = () => {
 
 	const handleSuccess = (finalOutput: string) => {
 		doChecks(predefinedCode.test, editorRef?.current?.getCode() || "", finalOutput).then((result: string) => {
-			updateHeight();
 			sendMessage({type: "checker", result: result});
 		}).catch((error: string) => {
 			// This only happens if the checking code fails to compile/run correctly
