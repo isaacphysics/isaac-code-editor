@@ -6,7 +6,7 @@ export interface Cursor {
 	show: boolean;
 }
 
-interface OutputTerminalProps {cursor: RefObject<Cursor>, output?: string; feedbackMessage?: string, clearFeedback?: () => void, succeeded?: boolean}
+interface OutputTerminalProps {cursor: Cursor, output?: string; feedbackMessage?: string, clearFeedback?: () => void, succeeded?: boolean}
 
 export const OutputTerminal = React.forwardRef(({cursor, output, feedbackMessage, clearFeedback, succeeded}: OutputTerminalProps, ref) => {
 
@@ -21,10 +21,10 @@ export const OutputTerminal = React.forwardRef(({cursor, output, feedbackMessage
 			</div>
 		}
 		<div className={"output-text p-2"}>
-			{cursor?.current?.show && cursor.current?.pos !== 0 ?
-				<>{(output || "").slice(0, -cursor.current?.pos)}{tick && <span style={{fontStyle: "normal", marginLeft: "-0.2rem", marginRight: "-4.3px"}}>|</span>}{(output || "").slice(-cursor.current?.pos)}</>
+			{cursor?.show && cursor.pos !== 0 ?
+				<>{(output || "").slice(0, -cursor.pos)}{tick && <span style={{fontStyle: "normal", marginLeft: "-0.2rem", marginRight: "-4.3px"}}>|</span>}{(output || "").slice(-cursor.pos)}</>
 				:
-				<>{output}{(cursor?.current?.show && tick) && <span style={{fontStyle: "normal", marginLeft: "-0.2rem", marginRight: "-1rem"}}>|</span>}</>
+				<>{output}{(cursor?.show && tick) && <span style={{fontStyle: "normal", marginLeft: "-0.2rem", marginRight: "-1rem"}}>|</span>}</>
 			}
 		</div>
 	</pre>

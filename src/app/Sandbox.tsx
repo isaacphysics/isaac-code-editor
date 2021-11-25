@@ -50,7 +50,7 @@ export const Sandbox = () => {
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	const updateHeight = useCallback((editorLines?: number) => {
-		if (containerRef?.current && editorLines) {
+		if (containerRef?.current && editorLines && editorLines <= 11) {
 			sendMessage({type: "resize", height: heightOfEditorLine * editorLines + nonVariableHeight});
 		}
 	}, [containerRef, sendMessage]);
@@ -106,7 +106,6 @@ export const Sandbox = () => {
 		} else {
 			setTerminalOutput((currentOutput: string) => currentOutput.slice(0, -index) + output + currentOutput.slice(-index));
 		}
-
 	}
 
 	const clearTerminalOutput = () => {
@@ -133,59 +132,76 @@ export const Sandbox = () => {
 	const editorRef = useRef<{getCode: () => string | undefined}>(null);
 
 	const terminalRef = useRef<HTMLPreElement>(null);
-	const cursor = useRef<Cursor>({
+	const [cursor, setCursor] = useState<Cursor>({
 		pos: 0,
 		show: false
 	});
 
-	const handleInputLine = useCallback(function handleLine(input: string) {
+	const handleInputLine = (input: string, cursorPos: number) => {
 		return new Promise<string>((resolve, reject) => {
 			if (!isDefined(terminalRef) || !isDefined(terminalRef.current)) reject();
 
 			function onKeyDown(e: KeyboardEvent) {
 				if (terminalRef.current !== window.document.activeElement) {
 					console.log("Not focused yet");
-					handleInputLine(input).then(resolve).catch(reject);
+					handleInputLine(input, cursorPos).then(resolve).catch(reject);
 				}
 
 				if (e.key) {
+					let newCursorPos: number;
 					switch (e.key) {
 						case "Enter":
 							addToTerminalOutput("\n");
 							resolve(input);
 							break;
- 						case "Backspace":
+						case "Backspace":
 							if (input.length > 0) {
-								subtractFromTerminalOutput(cursor?.current?.pos);
+								subtractFromTerminalOutput(cursorPos);
 							}
-							handleInputLine(removeNegativeIndex(input, cursor?.current?.pos)).then(resolve).catch(reject);
+							handleInputLine(removeNegativeIndex(input, cursorPos), cursorPos).then(resolve).catch(reject);
 							break;
 						case "ArrowLeft":
-							cursor.current = {show: cursor.current.show, pos: Math.min(input.length, cursor.current.pos + 1)};
-							handleInputLine(input).then(resolve).catch(reject);
+							if (e.ctrlKey) {
+								newCursorPos = input.length;
+							} else {
+								newCursorPos = Math.min(input.length, cursorPos + 1);
+							}
+							setCursor((currentCursor: Cursor) => ({show: currentCursor.show, pos: newCursorPos}));
+							handleInputLine(input, newCursorPos).then(resolve).catch(reject);
 							break;
 						case "ArrowRight":
-							cursor.current = {show: cursor.current.show, pos: Math.max(0, cursor.current.pos - 1)};
-							handleInputLine(input).then(resolve).catch(reject);
+							if (e.ctrlKey) {
+								newCursorPos = 0;
+							} else {
+								newCursorPos = Math.max(0, cursorPos - 1);
+							}
+							setCursor((currentCursor: Cursor) => ({show: currentCursor.show, pos: Math.max(0, newCursorPos)}));
+							handleInputLine(input, newCursorPos).then(resolve).catch(reject);
 							break;
 						default:
 							if (e.key.length === 1) {
-								addToTerminalOutput(e.key, cursor?.current?.pos);
-								handleInputLine(input + e.key).then(resolve).catch(reject);
+								addToTerminalOutput(e.key, cursorPos);
+								if (cursorPos === 0) {
+									handleInputLine(input + e.key, cursorPos).then(resolve).catch(reject);
+								} else {
+									handleInputLine(input.slice(0, -cursorPos) + e.key + input.slice(-cursorPos), cursorPos).then(resolve).catch(reject);
+								}
 							} else {
-								handleInputLine(input).then(resolve).catch(reject);
+								handleInputLine(input, cursorPos).then(resolve).catch(reject);
 							}
 					}
 				}
 			}
 			terminalRef?.current?.addEventListener('keydown', onKeyDown, {once: true});
+
+			// TODO Event listener for clicking and setting cursor position
 		});
-	}, [terminalRef, cursor]);
+	};
 
 	const handleInput = () => new Promise<string>((resolve, reject) => {
-		cursor.current = {show: true, pos: 0};
-		return handleInputLine("").then((input) => {
-			cursor.current = {show: false, pos: cursor.current.pos};
+		setCursor({show: true, pos: 0});
+		return handleInputLine("", 0).then((input) => {
+			setCursor((currentCursor) => ({show: false, pos: currentCursor.pos}));
 			resolve(input);
 		}).catch(reject);
 	});

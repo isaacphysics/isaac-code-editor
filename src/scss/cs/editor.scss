@@ -1,9 +1,10 @@
 .editor {
+  background-color: white;
   border: solid 1px #00000021;
   padding: 11.5px;
   //font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   //font-size: 0.875rem;
-  max-height: 15rem;
+  max-height: 15.4rem;
 
   .cm-editor {
     outline: none !important;
@@ -13,7 +14,7 @@
 #output-terminal {
   position: relative;
   height: 12rem;
-  background-color: $black;
+  background-color: black;
   font-family: Consolas, monospace;
   color: white;
   padding: 0;
@@ -21,6 +22,13 @@
   white-space: pre-wrap;       /* Since CSS 2.1 */
   white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
   word-wrap: break-word;       /* Internet Explorer 5.5+ */
+
+  :focus-visible {
+    background-color: green;
+  }
+  :focus-within {
+    background-color: green;
+  }
 }
 
 .run-button {
@@ -50,8 +58,7 @@
       opacity: 0.6;
       text-shadow: 0 1px 0 #888888;
       background: 0 0;
-      //padding: 0;
-      color: $black;
+      color: black;
       font-weight: 700;
       font-size: 120%;
       margin-top: -0.2rem;
