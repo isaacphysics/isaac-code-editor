@@ -1,9 +1,9 @@
 import {Editor} from "./Editor";
 import {RunButton} from "./RunButton";
-import {OutputTerminal} from "./OutputTerminal";
+import {Cursor, OutputTerminal} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {doChecks, runCode, runSetupCode} from "./Python";
-import {useIFrameMessages} from "./services/utils";
+import {isDefined, useIFrameMessages} from "./services/utils";
 
 const terminalInitialText = "Program output:\n";
 const uid = window.location.hash.substring(1);
@@ -76,7 +76,7 @@ export const Sandbox = () => {
 		if (receivedData.type === "initialise") {
 			setPredefinedCode({
 				setup: (receivedData?.setup || "") as string,
-				init: (receivedData?.code || "# Your code here") as string,
+				init: "print(input())\n" + (receivedData?.code || "# Your code here") as string,
 				test: (receivedData?.test || "checkerResult = ''") as string
 			});
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
@@ -92,8 +92,21 @@ export const Sandbox = () => {
 
 	const [terminalOutput, setTerminalOutput] = useState(terminalInitialText);
 
-	const appendToTerminalOutput = (output: string) => {
-		setTerminalOutput((currentOutput: string) => currentOutput + output);
+	const removeNegativeIndex = (input: string, index: number) => {
+		return input.slice(0, -(index + 1)) + (index === 0 ? "" : input.slice(-(index)));
+	}
+
+	const subtractFromTerminalOutput = (index: number) => {
+		setTerminalOutput((currentOutput: string) => removeNegativeIndex(currentOutput, index));
+	}
+
+	const addToTerminalOutput = (output: string, index?: number) => {
+		if (index === undefined || index === 0) {
+			setTerminalOutput((currentOutput: string) => currentOutput + output);
+		} else {
+			setTerminalOutput((currentOutput: string) => currentOutput.slice(0, -index) + output + currentOutput.slice(-index));
+		}
+
 	}
 
 	const clearTerminalOutput = () => {
@@ -119,18 +132,77 @@ export const Sandbox = () => {
 
 	const editorRef = useRef<{getCode: () => string | undefined}>(null);
 
+	const terminalRef = useRef<HTMLPreElement>(null);
+	const cursor = useRef<Cursor>({
+		pos: 0,
+		show: false
+	});
+
+	const handleInputLine = useCallback(function handleLine(input: string) {
+		return new Promise<string>((resolve, reject) => {
+			if (!isDefined(terminalRef) || !isDefined(terminalRef.current)) reject();
+
+			function onKeyDown(e: KeyboardEvent) {
+				if (terminalRef.current !== window.document.activeElement) {
+					console.log("Not focused yet");
+					handleInputLine(input).then(resolve).catch(reject);
+				}
+
+				if (e.key) {
+					switch (e.key) {
+						case "Enter":
+							addToTerminalOutput("\n");
+							resolve(input);
+							break;
+ 						case "Backspace":
+							if (input.length > 0) {
+								subtractFromTerminalOutput(cursor?.current?.pos);
+							}
+							handleInputLine(removeNegativeIndex(input, cursor?.current?.pos)).then(resolve).catch(reject);
+							break;
+						case "ArrowLeft":
+							cursor.current = {show: cursor.current.show, pos: Math.min(input.length, cursor.current.pos + 1)};
+							handleInputLine(input).then(resolve).catch(reject);
+							break;
+						case "ArrowRight":
+							cursor.current = {show: cursor.current.show, pos: Math.max(0, cursor.current.pos - 1)};
+							handleInputLine(input).then(resolve).catch(reject);
+							break;
+						default:
+							if (e.key.length === 1) {
+								addToTerminalOutput(e.key, cursor?.current?.pos);
+								handleInputLine(input + e.key).then(resolve).catch(reject);
+							} else {
+								handleInputLine(input).then(resolve).catch(reject);
+							}
+					}
+				}
+			}
+			terminalRef?.current?.addEventListener('keydown', onKeyDown, {once: true});
+		});
+	}, [terminalRef, cursor]);
+
+	const handleInput = () => new Promise<string>((resolve, reject) => {
+		cursor.current = {show: true, pos: 0};
+		return handleInputLine("").then((input) => {
+			cursor.current = {show: false, pos: cursor.current.pos};
+			resolve(input);
+		}).catch(reject);
+	});
+
 	const handleRunPython = () => {
 		if (!loaded) return;
 
 		clearTerminalOutput();
 		setRunning(true);
 
-		runSetupCode(predefinedCode.setup, appendToTerminalOutput).then(() => {
+		runSetupCode(predefinedCode.setup, addToTerminalOutput, handleInput).then(() => {
 			return runCode(editorRef?.current?.getCode() || "",
-				appendToTerminalOutput,
+				addToTerminalOutput,
+				handleInput,
 				handleSuccess,
 				printError,
-				{retainGlobals: false}
+				{retainGlobals: true}
 			)
 		}).then(() => setRunning(false));
 	}
@@ -138,6 +210,6 @@ export const Sandbox = () => {
 	return <div ref={containerRef}>
 		<Editor initCode={predefinedCode.init} ref={editorRef} updateHeight={updateHeight} />
 		<RunButton running={running} loaded={loaded} onClick={handleRunPython} />
-		<OutputTerminal output={terminalOutput} succeeded={feedback?.succeeded} feedbackMessage={feedback?.message} clearFeedback={() => setFeedback(undefined)} />
+		<OutputTerminal ref={terminalRef} cursor={cursor} output={terminalOutput} succeeded={feedback?.succeeded} feedbackMessage={feedback?.message} clearFeedback={() => setFeedback(undefined)} />
 	</div>
 }

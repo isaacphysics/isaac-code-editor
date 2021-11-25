@@ -1,7 +1,19 @@
-interface OutputTerminalProps {output?: string; feedbackMessage?: string, clearFeedback?: () => void, succeeded?: boolean}
+import React, {RefObject} from "react";
+import {useTick} from "./services/utils";
 
-export const OutputTerminal = ({output, feedbackMessage, clearFeedback, succeeded}: OutputTerminalProps) => {
-	return <pre id={"output-terminal"} className="bg-black text-white">
+export interface Cursor {
+	pos: number;
+	show: boolean;
+}
+
+interface OutputTerminalProps {cursor: RefObject<Cursor>, output?: string; feedbackMessage?: string, clearFeedback?: () => void, succeeded?: boolean}
+
+export const OutputTerminal = React.forwardRef(({cursor, output, feedbackMessage, clearFeedback, succeeded}: OutputTerminalProps, ref) => {
+
+	const tick = useTick(500);
+
+	// @ts-ignore Typescript can't work out that a ForwardedRef can be used like a normal ref
+	return <pre ref={ref} id={"output-terminal"} tabIndex={0} className={`bg-black text-white`}>
 		{feedbackMessage &&
 			// Feedback banner
 			<div className={"feedback-banner w-100 p-2 " + (succeeded ? "feedback-success" : "feedback-error")}>
@@ -9,7 +21,11 @@ export const OutputTerminal = ({output, feedbackMessage, clearFeedback, succeede
 			</div>
 		}
 		<div className={"output-text p-2"}>
-			{output}
+			{cursor?.current?.show && cursor.current?.pos !== 0 ?
+				<>{(output || "").slice(0, -cursor.current?.pos)}{tick && <span style={{fontStyle: "normal", marginLeft: "-0.2rem", marginRight: "-4.3px"}}>|</span>}{(output || "").slice(-cursor.current?.pos)}</>
+				:
+				<>{output}{(cursor?.current?.show && tick) && <span style={{fontStyle: "normal", marginLeft: "-0.2rem", marginRight: "-1rem"}}>|</span>}</>
+			}
 		</div>
 	</pre>
-}
+});

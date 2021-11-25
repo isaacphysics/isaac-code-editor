@@ -66,4 +66,51 @@ export function useIFrameMessages(uid: string, iFrameRef?: RefObject<HTMLIFrameE
     return {receivedData, sendMessage};
 }
 
+// undefined|null checker and type guard all-in-wonder.
+// Why is this not in Typescript?
+export function isDefined<T>(value: T | undefined | null): value is T {
+    return (value as T) !== undefined && (value as T) !== null;
+}
+
+// export const useFocused = (refObject?: RefObject<HTMLElement>) => {
+//
+//     const [isFocused, setIsFocused] = useState<boolean>(false);
+//
+//     useEffect(() => {
+//         if (!isDefined(refObject) || !isDefined(refObject.current)) return;
+//
+//         const refObjectCopy = refObject?.current;
+//
+//         const onFocusIn = () => {
+//             console.log("Focusing");
+//             setIsFocused(true);
+//         }
+//
+//         const onFocusOut = () => { setIsFocused(false); }
+//
+//         refObject.current.addEventListener("focusin", onFocusIn);
+//         refObject.current.addEventListener("focusout", onFocusOut);
+//
+//         return () => {
+//             refObjectCopy.removeEventListener("focusin", onFocusIn);
+//             refObjectCopy.removeEventListener("focusout", onFocusOut);
+//         }
+//     }, [refObject]);
+//
+//     return isFocused;
+// }
+
+export const useTick = (interval: number) => {
+    const intervalRef = useRef(interval);
+    const [clockOn, setClockOn] = useState<boolean>(false);
+
+    useEffect(() => {
+        const ticker = setTimeout(() => {
+            setClockOn(current => !current);
+        }, intervalRef.current);
+        return () => clearTimeout(ticker);
+    });
+    return clockOn;
+}
+
 export const noop = () => undefined;

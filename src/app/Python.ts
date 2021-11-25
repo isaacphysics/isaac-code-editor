@@ -3,8 +3,8 @@ import Sk from "skulpt"
 import {noop} from "./services/utils";
 
 // Transpile and run a snippet of python code
-export function runCode(code: string, printOutput: (output: string) => void, handleSuccess: (finalOutput: string) => void,
-									  printError: (error: string) => void, skulptOptions= {}) {
+export function runCode(code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>,
+						handleSuccess: (finalOutput: string) => void, printError: (error: string) => void, skulptOptions= {}) {
 
 	let finalOutput = "";
 
@@ -13,6 +13,13 @@ export function runCode(code: string, printOutput: (output: string) => void, han
 			printOutput(output);
 			finalOutput += output;
 		},
+		inputfun: () => new Promise((resolve, reject) => {
+			const inputStartTime = Date.now();
+			return handleInput().then((input) => {
+				Sk.execLimit = Sk.execLimit + (Date.now() - inputStartTime);
+				resolve(input);
+			}).catch(reject);
+		}),
 		read: builtinRead,
 		execLimit: 2000, // 2 seconds
 		killableWhile: true,
@@ -34,15 +41,13 @@ export function runCode(code: string, printOutput: (output: string) => void, han
 	});
 }
 
-export function runSetupCode(setupCode: string, printOutput: (output: string) => void) {
+export function runSetupCode(setupCode: string, printOutput: (output: string) => void, handleInput: () => Promise<string>) {
 	return new Promise((resolve, reject) => {
-		runCode(setupCode, printOutput, resolve, reject, {retainGlobals: false});
+		runCode(setupCode, printOutput, handleInput, resolve, reject, {retainGlobals: true});
 	});
 }
 
 export function doChecks(testCode: string, mainCode: string, output: string): Promise<string> {
-	Sk.globals.studentCode = new Sk.builtin.str(mainCode);
-	Sk.globals.studentOutput = new Sk.builtin.str(output);
 	return new Promise((resolve, reject) => {
 		const handleSuccess = () => {
 			resolve(Sk.globals["checkerResult"].v.toString());
@@ -50,7 +55,12 @@ export function doChecks(testCode: string, mainCode: string, output: string): Pr
 		const handleError = (error: string) => {
 			reject(error.replace(/ on line \d+/, ""));
 		}
-		runCode(testCode, noop, handleSuccess, handleError, {retainGlobals: true});
+		const inputHandler = () => new Promise<string>((resolve, reject) => {
+			// In here, I can input test values defined by the content team!
+			resolve("");
+		});
+
+		runCode(testCode, noop, inputHandler, handleSuccess, handleError, {retainGlobals: true});
 	});
 }
 
