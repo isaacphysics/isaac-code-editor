@@ -113,4 +113,20 @@ export const useTick = (interval: number) => {
     return clockOn;
 }
 
+// Listens for multiple events with a generic event listener, and only execute the one that gets an event first,
+// cleaning up the ones that don't get called
+export const addMultipleEventListener = (el: HTMLElement, eventTypes: string[], f: (e: Event) => void, options?: AddEventListenerOptions) => {
+    const handler = (e: Event) => {
+        eventTypes.forEach((_e) => {
+            if (e.type !== _e) {
+                el.removeEventListener(_e, handler);
+            }
+        });
+        f(e);
+    }
+    eventTypes.forEach((eventType) => {
+        el.addEventListener(eventType, handler, options);
+    });
+}
+
 export const noop = () => undefined;

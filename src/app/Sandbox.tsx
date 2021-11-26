@@ -3,7 +3,7 @@ import {RunButton} from "./RunButton";
 import {Cursor, OutputTerminal} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {doChecks, runCode, runSetupCode} from "./Python";
-import {isDefined, useIFrameMessages} from "./services/utils";
+import {addMultipleEventListener, isDefined, useIFrameMessages} from "./services/utils";
 
 const terminalInitialText = "Program output:\n";
 const uid = window.location.hash.substring(1);
@@ -141,58 +141,82 @@ export const Sandbox = () => {
 		return new Promise<string>((resolve, reject) => {
 			if (!isDefined(terminalRef) || !isDefined(terminalRef.current)) reject();
 
-			function onKeyDown(e: KeyboardEvent) {
-				if (terminalRef.current !== window.document.activeElement) {
-					console.log("Not focused yet");
-					handleInputLine(input, cursorPos).then(resolve).catch(reject);
+			function onKeyDown(e: Event) {
+
+				if (e.type === "mousedown") {
+					let me = e as MouseEvent;
+					// @ts-ignore
+					if (me.target && me.target.nodeName === "SPAN" && parseInt(me.target.id)) {
+						// @ts-ignore
+						const newCursorPos: number = Math.min(input.length, parseInt(me.target.id) - 1);
+						handleInputLine(input, newCursorPos).then(resolve).catch(reject);
+						setCursor((currentCursor: Cursor) => ({show: currentCursor.show, pos: newCursorPos}));
+					} else {
+						handleInputLine(input, cursorPos).then(resolve).catch(reject);
+					}
+					return;
 				}
 
-				if (e.key) {
-					let newCursorPos: number;
-					switch (e.key) {
-						case "Enter":
-							addToTerminalOutput("\n");
-							resolve(input);
-							break;
-						case "Backspace":
-							if (input.length > 0) {
-								subtractFromTerminalOutput(cursorPos);
-							}
-							handleInputLine(removeNegativeIndex(input, cursorPos), cursorPos).then(resolve).catch(reject);
-							break;
-						case "ArrowLeft":
-							if (e.ctrlKey) {
-								newCursorPos = input.length;
-							} else {
-								newCursorPos = Math.min(input.length, cursorPos + 1);
-							}
-							setCursor((currentCursor: Cursor) => ({show: currentCursor.show, pos: newCursorPos}));
-							handleInputLine(input, newCursorPos).then(resolve).catch(reject);
-							break;
-						case "ArrowRight":
-							if (e.ctrlKey) {
-								newCursorPos = 0;
-							} else {
-								newCursorPos = Math.max(0, cursorPos - 1);
-							}
-							setCursor((currentCursor: Cursor) => ({show: currentCursor.show, pos: Math.max(0, newCursorPos)}));
-							handleInputLine(input, newCursorPos).then(resolve).catch(reject);
-							break;
-						default:
-							if (e.key.length === 1) {
-								addToTerminalOutput(e.key, cursorPos);
-								if (cursorPos === 0) {
-									handleInputLine(input + e.key, cursorPos).then(resolve).catch(reject);
-								} else {
-									handleInputLine(input.slice(0, -cursorPos) + e.key + input.slice(-cursorPos), cursorPos).then(resolve).catch(reject);
-								}
-							} else {
-								handleInputLine(input, cursorPos).then(resolve).catch(reject);
-							}
+				if (e.type === "keydown") {
+
+					if (terminalRef.current !== window.document.activeElement) {
+						handleInputLine(input, cursorPos).then(resolve).catch(reject);
+						return;
 					}
+
+					let ke = e as KeyboardEvent;
+
+					if (ke.key) {
+						let newCursorPos: number;
+						switch (ke.key) {
+							case "Enter":
+								addToTerminalOutput("\n");
+								resolve(input);
+								break;
+							case "Backspace":
+								if (input.length > 0) {
+									subtractFromTerminalOutput(cursorPos);
+								}
+								handleInputLine(removeNegativeIndex(input, cursorPos), cursorPos).then(resolve).catch(reject);
+								break;
+							case "ArrowLeft":
+								if (ke.ctrlKey) {
+									newCursorPos = input.length;
+								} else {
+									newCursorPos = Math.min(input.length, cursorPos + 1);
+								}
+								setCursor((currentCursor: Cursor) => ({show: currentCursor.show, pos: newCursorPos}));
+								handleInputLine(input, newCursorPos).then(resolve).catch(reject);
+								break;
+							case "ArrowRight":
+								if (ke.ctrlKey) {
+									newCursorPos = 0;
+								} else {
+									newCursorPos = Math.max(0, cursorPos - 1);
+								}
+								setCursor((currentCursor: Cursor) => ({
+									show: currentCursor.show,
+									pos: Math.max(0, newCursorPos)
+								}));
+								handleInputLine(input, newCursorPos).then(resolve).catch(reject);
+								break;
+							default:
+								if (ke.key.length === 1) {
+									addToTerminalOutput(ke.key, cursorPos);
+									if (cursorPos === 0) {
+										handleInputLine(input + ke.key, cursorPos).then(resolve).catch(reject);
+									} else {
+										handleInputLine(input.slice(0, -cursorPos) + ke.key + input.slice(-cursorPos), cursorPos).then(resolve).catch(reject);
+									}
+								} else {
+									handleInputLine(input, cursorPos).then(resolve).catch(reject);
+								}
+						}
+					}
+					return;
 				}
 			}
-			terminalRef?.current?.addEventListener('keydown', onKeyDown, {once: true});
+			terminalRef?.current && addMultipleEventListener(terminalRef?.current, ['keydown', 'mousedown'], onKeyDown, {once: true});
 
 			// TODO Event listener for clicking and setting cursor position
 		});
