@@ -1,9 +1,10 @@
 import {Editor} from "./Editor";
 import {RunButton} from "./RunButton";
-import {Cursor, OutputTerminal} from "./OutputTerminal";
+import {OutputTerminal} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {doChecks, runCode, runSetupCode} from "./Python";
-import {addMultipleEventListener, isDefined, useIFrameMessages} from "./services/utils";
+import {useIFrameMessages} from "./services/utils";
+import {IDisposable, Terminal} from "xterm";
 
 const terminalInitialText = "Program output:\n";
 const uid = window.location.hash.substring(1);
@@ -31,7 +32,7 @@ const heightOfEditorLine = 19.6;
 const cmContentYPadding = 8;
 const editorYPaddingBorderAndMargin = 23 + 2 + 16;
 const buttonHeightAndYMargin = 50 + 16;
-const terminalHeight = convertRemToPixels(12);
+const terminalHeight = 200;
 const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + buttonHeightAndYMargin + terminalHeight;
 
 export const Sandbox = () => {
@@ -80,7 +81,7 @@ export const Sandbox = () => {
 				test: (receivedData?.test || "checkerResult = ''") as string
 			});
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
-			updateHeight(numberOfLines);
+			updateHeight(numberOfLines + 1);
 			setLoaded(true);
 		} else if(receivedData.type === "feedback") {
 			setFeedback({
@@ -90,27 +91,18 @@ export const Sandbox = () => {
 		}
 	}, [receivedData]);
 
-	const [terminalOutput, setTerminalOutput] = useState(terminalInitialText);
-
-	const removeNegativeIndex = (input: string, index: number) => {
-		return input.slice(0, -(index + 1)) + (index === 0 ? "" : input.slice(-(index)));
-	}
-
-	const subtractFromTerminalOutput = (index: number) => {
-		setTerminalOutput((currentOutput: string) => removeNegativeIndex(currentOutput, index));
-	}
-
-	const addToTerminalOutput = (output: string, index?: number) => {
-		if (index === undefined || index === 0) {
-			setTerminalOutput((currentOutput: string) => currentOutput + output);
-		} else {
-			setTerminalOutput((currentOutput: string) => currentOutput.slice(0, -index) + output + currentOutput.slice(-index));
+	const terminalWrite = (output: string) => {
+		if (xterm) {
+			// @ts-ignore
+			xterm._core.buffer.x = 0;
+			xterm.write(output.replaceAll("\n", "\r\n"));
 		}
+
 	}
 
-	const clearTerminalOutput = () => {
+	const clearTerminal = () => {
 		setFeedback(undefined);
-		setTerminalOutput(terminalInitialText);
+		xterm?.clear();
 	}
 
 	const handleSuccess = (finalOutput: string) => {
@@ -131,114 +123,70 @@ export const Sandbox = () => {
 
 	const editorRef = useRef<{getCode: () => string | undefined}>(null);
 
-	const terminalRef = useRef<HTMLPreElement>(null);
-	const [cursor, setCursor] = useState<Cursor>({
-		pos: 0,
-		show: false
-	});
+	const [xterm, setXTerm] = useState<Terminal>();
 
-	const handleInputLine = (input: string, cursorPos: number) => {
-		return new Promise<string>((resolve, reject) => {
-			if (!isDefined(terminalRef) || !isDefined(terminalRef.current)) reject();
+	const handleSingleInputChar = (input: string) => new Promise<string>((resolve, reject) => {
+		if (undefined === xterm) {
+			return resolve("");
+		}
 
-			function onKeyDown(e: Event) {
+		let cleanUpListener: () => void;
 
-				if (e.type === "mousedown") {
-					let me = e as MouseEvent;
-					// @ts-ignore
-					if (me.target && me.target.nodeName === "SPAN" && parseInt(me.target.id)) {
-						// @ts-ignore
-						const newCursorPos: number = Math.min(input.length, parseInt(me.target.id) - 1);
-						handleInputLine(input, newCursorPos).then(resolve).catch(reject);
-						setCursor((currentCursor: Cursor) => ({show: currentCursor.show, pos: newCursorPos}));
-					} else {
-						handleInputLine(input, cursorPos).then(resolve).catch(reject);
-					}
+		const onDataListener = xterm.onData((s: string) => {
+			const cleanUpAndRecurse = (newInput: string) => {
+				cleanUpListener();
+				handleSingleInputChar(newInput).then(resolve).catch(reject);
+			}
+
+			switch (s) {
+				case '\u0003': // Ctrl+C
+					xterm.write('^C');
+					cleanUpAndRecurse(input);
 					return;
-				}
-
-				if (e.type === "keydown") {
-
-					if (terminalRef.current !== window.document.activeElement) {
-						handleInputLine(input, cursorPos).then(resolve).catch(reject);
+				case '\r': // Enter
+					cleanUpListener();
+					xterm.write("\r\n");
+					resolve(input);
+					return;
+				case '\n': // Enter (don't handle second character generated)
+					return;
+				case '\u007F': // Backspace (DEL)
+					// Do not delete the prompt
+					// @ts-ignore
+					if (input.length > 0) {
+						xterm.write('\b \b');
+						cleanUpAndRecurse(input.slice(0, -1));
 						return;
 					}
-
-					let ke = e as KeyboardEvent;
-
-					if (ke.key) {
-						let newCursorPos: number;
-						switch (ke.key) {
-							case "Enter":
-								addToTerminalOutput("\n");
-								resolve(input);
-								break;
-							case "Backspace":
-								if (input.length > 0) {
-									subtractFromTerminalOutput(cursorPos);
-								}
-								handleInputLine(removeNegativeIndex(input, cursorPos), cursorPos).then(resolve).catch(reject);
-								break;
-							case "ArrowLeft":
-								if (ke.ctrlKey) {
-									newCursorPos = input.length;
-								} else {
-									newCursorPos = Math.min(input.length, cursorPos + 1);
-								}
-								setCursor((currentCursor: Cursor) => ({show: currentCursor.show, pos: newCursorPos}));
-								handleInputLine(input, newCursorPos).then(resolve).catch(reject);
-								break;
-							case "ArrowRight":
-								if (ke.ctrlKey) {
-									newCursorPos = 0;
-								} else {
-									newCursorPos = Math.max(0, cursorPos - 1);
-								}
-								setCursor((currentCursor: Cursor) => ({
-									show: currentCursor.show,
-									pos: Math.max(0, newCursorPos)
-								}));
-								handleInputLine(input, newCursorPos).then(resolve).catch(reject);
-								break;
-							default:
-								if (ke.key.length === 1) {
-									addToTerminalOutput(ke.key, cursorPos);
-									if (cursorPos === 0) {
-										handleInputLine(input + ke.key, cursorPos).then(resolve).catch(reject);
-									} else {
-										handleInputLine(input.slice(0, -cursorPos) + ke.key + input.slice(-cursorPos), cursorPos).then(resolve).catch(reject);
-									}
-								} else {
-									handleInputLine(input, cursorPos).then(resolve).catch(reject);
-								}
-						}
+					break;
+				default: // Print all other characters for demo
+					if (s >= String.fromCharCode(0x20) && s <= String.fromCharCode(0x7B) || s >= '\u00a0') {
+						xterm.write(s);
+						cleanUpAndRecurse(input + s);
+						return;
 					}
-					return;
-				}
 			}
-			terminalRef?.current && addMultipleEventListener(terminalRef?.current, ['keydown', 'mousedown'], onKeyDown, {once: true});
-
-			// TODO Event listener for clicking and setting cursor position
+			cleanUpAndRecurse(input);
+			return;
 		});
-	};
 
-	const handleInput = () => new Promise<string>((resolve, reject) => {
-		setCursor({show: true, pos: 0});
-		return handleInputLine("", 0).then((input) => {
-			setCursor((currentCursor) => ({show: false, pos: currentCursor.pos}));
-			resolve(input);
-		}).catch(reject);
+		cleanUpListener = () => {
+			onDataListener.dispose();
+		}
+
 	});
+
+	const handleInput = () => handleSingleInputChar("");
 
 	const handleRunPython = () => {
 		if (!loaded) return;
 
-		clearTerminalOutput();
+		clearTerminal();
 		setRunning(true);
 
-		runSetupCode(predefinedCode.setup, addToTerminalOutput, handleInput).then(() => {
+		runSetupCode(predefinedCode.setup, terminalWrite, handleInput).then(() => {
 			return runCode(editorRef?.current?.getCode() || "",
-				addToTerminalOutput,
+				terminalWrite,
 				handleInput,
 				handleSuccess,
 				printError,
@@ -250,6 +198,6 @@ export const Sandbox = () => {
 	return <div ref={containerRef}>
 		<Editor initCode={predefinedCode.init} ref={editorRef} updateHeight={updateHeight} />
 		<RunButton running={running} loaded={loaded} onClick={handleRunPython} />
-		<OutputTerminal ref={terminalRef} cursor={cursor} output={terminalOutput} succeeded={feedback?.succeeded} feedbackMessage={feedback?.message} clearFeedback={() => setFeedback(undefined)} />
+		<OutputTerminal setXTerm={setXTerm} succeeded={feedback?.succeeded} feedbackMessage={feedback?.message} clearFeedback={() => setFeedback(undefined)} />
 	</div>
 }

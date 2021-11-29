@@ -27,7 +27,10 @@
     "skulpt": "^1.2.0",
     "typescript": "^4.4.4",
     "uuid": "^3.3.3",
-    "web-vitals": "^1.1.2"
+    "web-vitals": "^1.1.2",
+    "xterm": "^4.15.0",
+    "xterm-addon-fit": "^0.5.0",
+    "xterm-addon-webgl": "^0.11.3"
   },
   "scripts": {
     "start": "react-scripts start",

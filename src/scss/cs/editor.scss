@@ -11,26 +11,6 @@
   }
 }
 
-#output-terminal {
-  position: relative;
-  height: 12rem;
-  background-color: black;
-  font-family: Consolas, monospace;
-  color: white;
-  padding: 0;
-  overflow: auto;
-  white-space: pre-wrap;       /* Since CSS 2.1 */
-  white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
-  word-wrap: break-word;       /* Internet Explorer 5.5+ */
-
-  :focus-visible {
-    background-color: green;
-  }
-  :focus-within {
-    background-color: green;
-  }
-}
-
 .run-button {
   height: 50px;
   padding-right: 5px;
