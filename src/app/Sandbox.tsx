@@ -34,6 +34,7 @@ const editorYPaddingBorderAndMargin = 23 + 2 + 16;
 const buttonHeightAndYMargin = 50 + 16;
 const terminalHeight = 200;
 const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + buttonHeightAndYMargin + terminalHeight;
+const feedbackHeight = 42;
 
 export const Sandbox = () => {
 	const [loaded, setLoaded] = useState<boolean>(false);
@@ -48,13 +49,19 @@ export const Sandbox = () => {
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
+	const [lastNumberOfLines, setLastNumberOfLines] = useState<number>();
+
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	const updateHeight = useCallback((editorLines?: number) => {
+	const updateHeight = useCallback((editorLines?: number, forceFeedbackShow?: boolean) => {
 		if (containerRef?.current && editorLines && editorLines <= 11) {
-			sendMessage({type: "resize", height: heightOfEditorLine * editorLines + nonVariableHeight});
+			setLastNumberOfLines(editorLines);
+			sendMessage({
+				type: "resize",
+				height: heightOfEditorLine * editorLines + nonVariableHeight + ((forceFeedbackShow ?? feedback) ? feedbackHeight : 0)
+			});
 		}
-	}, [containerRef, sendMessage]);
+	}, [containerRef, sendMessage, feedback, setLastNumberOfLines]);
 	
 	useEffect(() => {
 		if (undefined === receivedData) return;
@@ -77,11 +84,11 @@ export const Sandbox = () => {
 		if (receivedData.type === "initialise") {
 			setPredefinedCode({
 				setup: (receivedData?.setup || "") as string,
-				init: "print(input())\n" + (receivedData?.code || "# Your code here") as string,
+				init: (receivedData?.code || "# Your code here") as string,
 				test: (receivedData?.test || "checkerResult = ''") as string
 			});
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
-			updateHeight(numberOfLines + 1);
+			updateHeight(numberOfLines);
 			setLoaded(true);
 		} else if(receivedData.type === "feedback") {
 			setFeedback({
@@ -90,6 +97,10 @@ export const Sandbox = () => {
 			});
 		}
 	}, [receivedData]);
+
+	useEffect(() => {
+		updateHeight(lastNumberOfLines, !!feedback);
+	}, [feedback]);
 
 	const terminalWrite = (output: string) => {
 		if (xterm) {

@@ -5,7 +5,7 @@ import {WebglAddon} from "xterm-addon-webgl"
 
 var baseTheme = {
 	foreground: '#F8F8F8',
-	background: '#2D2E2C',
+	background: '#000000',
 	selection: '#5DA5D533',
 	black: '#1E1E1D',
 	brightBlack: '#262625',
@@ -25,9 +25,9 @@ var baseTheme = {
 	brightWhite: '#FFFFFF'
 };
 
-interface OutputTerminalProps {setXTerm: (t: Terminal) => void, output?: string; feedbackMessage?: string, clearFeedback?: () => void, succeeded?: boolean}
+interface OutputTerminalProps {setXTerm: (t: Terminal) => void, feedbackMessage?: string, clearFeedback?: () => void, succeeded?: boolean}
 
-export const OutputTerminal = ({setXTerm, output, feedbackMessage, clearFeedback, succeeded}: OutputTerminalProps) => {
+export const OutputTerminal = ({setXTerm, feedbackMessage, clearFeedback, succeeded}: OutputTerminalProps) => {
 
 	const xtermDiv = useRef<HTMLDivElement>(null);
 
@@ -57,7 +57,7 @@ export const OutputTerminal = ({setXTerm, output, feedbackMessage, clearFeedback
 		}
 		window.addEventListener("resize", fit);
 
-		// Allow scroll inside
+		// Allow scrolling inside the terminal to not scroll the outer window
 		const stopScrollProp = (e: Event) => {
 			e.preventDefault();
 		}
@@ -73,20 +73,13 @@ export const OutputTerminal = ({setXTerm, output, feedbackMessage, clearFeedback
 	}, []);
 
 	return <>
-	{/*	<pre id={"output-terminal"} tabIndex={0} className={`bg-black text-white`}>*/}
-	{/*	{feedbackMessage &&*/}
-	{/*		// Feedback banner*/}
-	{/*		<div className={"feedback-banner w-100 p-2 " + (succeeded ? "feedback-success" : "feedback-error")}>*/}
-	{/*			<span className={"feedback-message"}>{feedbackMessage}<button className={"feedback-button"} onClick={clearFeedback}>&times;</button></span>*/}
-	{/*		</div>*/}
-	{/*	}*/}
-	{/*	/!*<div ref={xtermDiv} className={"output-text p-2"}>*!/*/}
-	{/*	/!*	{output}*!/*/}
-	{/*	/!*</div>*!/*/}
-	{/*</pre>*/}
-		<div style={{height: "200px", backgroundColor: "#2D2E2C", borderRadius: "5px", padding: "10px 20px", paddingRight: "10px"}}>
+		{feedbackMessage &&
+		// Feedback banner
+		<div className={"feedback-banner w-100 p-2 " + (succeeded ? "feedback-success" : "feedback-error")} style={{borderTopLeftRadius: "5px", borderTopRightRadius: "5px"}}>
+			<span className={"feedback-message"}>{feedbackMessage}<button className={"feedback-button"} onClick={clearFeedback}>&times;</button></span>
+		</div>}
+		<div style={{height: "200px", backgroundColor: "#000000", borderBottomLeftRadius: "5px", borderBottomRightRadius: "5px", borderTopLeftRadius: feedbackMessage ? 0 : "5px", borderTopRightRadius: feedbackMessage ? 0 : "5px", padding: "10px 20px", paddingRight: "10px"}}>
 			<div id={"output-terminal"} className={"w-100 h-100"} ref={xtermDiv} />
 		</div>
-	</>
-
+	</>;
 };
