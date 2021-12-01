@@ -3,8 +3,7 @@ import Sk from "skulpt"
 import {noop} from "./services/utils";
 
 // Transpile and run a snippet of python code
-export function runCode(code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>,
-						handleSuccess: (finalOutput: string) => void, printError: (error: string) => void, skulptOptions= {}) {
+export const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>, skulptOptions= {}) => new Promise<string>((resolve, reject) => {
 
 	let finalOutput = "";
 
@@ -29,39 +28,51 @@ export function runCode(code: string, printOutput: (output: string) => void, han
 	return Sk.misceval.asyncToPromise(
 		() => Sk.importMainWithBody("<stdin>", false, code, true)
 	).then(() => {
-		handleSuccess(finalOutput);
+		resolve(finalOutput);
 	}).catch((err: any) => {
 		switch(err.tp$name) {
 			case "TimeLimitError":
-				printError("Your program took too long to execute! Are there any infinite loops?");
+				reject({error: "Your program took too long to execute! Are there any infinite loops?", isProgrammaticError: true});
 				break;
 			default:
-				printError(err.toString());
+				reject({error: err.toString(), isProgrammaticError: true});
 		}
 	});
+});
+
+export function runSetupCode(printOutput: (output: string) => void, handleInput: () => Promise<string>, setupCode?: string) {
+	if (setupCode) {
+		return runCode(setupCode, printOutput, handleInput, {retainGlobals: true});
+	} else {
+		return new Promise<string>(resolve => resolve(""));
+	}
 }
 
-export function runSetupCode(setupCode: string, printOutput: (output: string) => void, handleInput: () => Promise<string>) {
-	return new Promise((resolve, reject) => {
-		runCode(setupCode, printOutput, handleInput, resolve, reject, {retainGlobals: true});
-	});
-}
+export function doChecks(mainCode: string, output: string, testCode?: string, testInputs?: string[], outputRegex?: RegExp) {
+	if (testCode) {
+		// Reverses the inputs, importantly by returning a new array and not doing it in place with .reverse()
+		const reversedInputs = testInputs?.reduce((acc: string[], x) => [x].concat(acc), []) ?? [];
 
-export function doChecks(testCode: string, mainCode: string, output: string): Promise<string> {
-	return new Promise((resolve, reject) => {
-		const handleSuccess = () => {
-			resolve(Sk.globals["checkerResult"].v.toString());
-		}
-		const handleError = (error: string) => {
-			reject(error.replace(/ on line \d+/, ""));
-		}
-		const inputHandler = () => new Promise<string>((resolve, reject) => {
-			// In here, I can input test values defined by the content team!
-			resolve("");
+		// Every time "input()" is called, the first element of the test inputs is given as
+		//  the user input, and that element is removed from the list. If no test input is
+		//  available, the empty string is given.
+		const inputHandler = () => new Promise<string>(resolve => {
+			resolve(reversedInputs.pop() || "");
 		});
 
-		runCode(testCode, noop, inputHandler, handleSuccess, handleError, {retainGlobals: true});
-	});
+		const afterRun = (output: string) => new Promise<string>((resolve, reject) => {
+			// Check output matches regex first
+			if (outputRegex && !outputRegex.test(output)) {
+				reject({error: "Your program produced unexpected output!", isProgrammaticError: false});
+			} else {
+				resolve(Sk.globals["checkerResult"].v.toString());
+			}
+		});
+
+		return runCode(testCode, noop, inputHandler, {retainGlobals: true}).then(afterRun);
+	} else {
+		return new Promise<string>(resolve => resolve(""));
+	}
 }
 
 function builtinRead(x: string) {

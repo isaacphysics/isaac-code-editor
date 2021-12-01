@@ -6,7 +6,7 @@ import {WebglAddon} from "xterm-addon-webgl"
 var baseTheme = {
 	foreground: '#F8F8F8',
 	background: '#000000',
-	selection: '#5DA5D533',
+	selection: '#FFB53F33',
 	black: '#1E1E1D',
 	brightBlack: '#262625',
 	red: '#CE5C5C',
@@ -63,6 +63,11 @@ export const OutputTerminal = ({setXTerm, feedbackMessage, clearFeedback, succee
 		}
 		xtermDiv.current.addEventListener('wheel', stopScrollProp);
 		xtermDiv.current.addEventListener('scroll', stopScrollProp);
+
+		newTerm.attachCustomKeyEventHandler((e) => {
+			// Don't process the key if it is ctrl-c (or cmd-c on Mac)
+			return !((e.ctrlKey || e.metaKey) && e.key === "c");
+		});
 
 		return () => {
 			newTerm.dispose();

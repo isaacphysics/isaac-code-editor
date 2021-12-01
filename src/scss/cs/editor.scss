@@ -31,31 +31,26 @@
   top: 0;
   left: 0;
   overflow: auto;
+  color: white;
 
   .feedback-message {
     padding-left: 20px;
     .feedback-button {
-      opacity: 0.6;
-      text-shadow: 0 1px 0 #888888;
       background: 0 0;
-      color: black;
       font-weight: 700;
       font-size: 120%;
       margin-top: -0.2rem;
       position: absolute;
       left: 3px;
+      opacity: 1;
+      text-shadow: 0 1px 0 #FFFFFF55;
+      color: white;
     }
   }
 }
 
 .feedback-success {
   background-color: $green;
-
-  .feedback-message > .feedback-button {
-    opacity: 1;
-    text-shadow: 0 1px 0 #FFFFFF55;
-    color: white;
-  }
 }
 
 .feedback-error {

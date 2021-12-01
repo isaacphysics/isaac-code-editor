@@ -3,10 +3,10 @@ import {RunButton} from "./RunButton";
 import {OutputTerminal} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {doChecks, runCode, runSetupCode} from "./Python";
-import {useIFrameMessages} from "./services/utils";
-import {IDisposable, Terminal} from "xterm";
+import {tryCast, useIFrameMessages} from "./services/utils";
+import {Terminal} from "xterm";
 
-const terminalInitialText = "Program output:\n";
+const terminalInitialText = "Isaac Python - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
 
 export interface Feedback {
@@ -15,13 +15,11 @@ export interface Feedback {
 }
 
 export interface PredefinedCode {
-	setup: string;
-	init: string;
-	test: string;
-}
-
-function convertRemToPixels(rem: number) {
-	return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
+	setup?: string;
+	code?: string;
+	test?: string;
+	testInputs?: string[];
+	outputRegex?: RegExp;
 }
 
 // TODO Find a better way to do this
@@ -42,9 +40,7 @@ export const Sandbox = () => {
 
 	const [feedback, setFeedback] = useState<Feedback>();
 	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>({
-		setup: "",
-		init: "# Loading...",
-		test: ""
+		code: "# Loading..."
 	});
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
@@ -82,11 +78,15 @@ export const Sandbox = () => {
 		 * }
 		 */
 		if (receivedData.type === "initialise") {
-			setPredefinedCode({
-				setup: (receivedData?.setup || "") as string,
-				init: (receivedData?.code || "# Your code here") as string,
-				test: (receivedData?.test || "checkerResult = ''") as string
-			});
+
+			const newPredefCode = {
+				setup: tryCast<string>(receivedData?.setup),
+				code: tryCast<string>(receivedData?.code),
+				test: tryCast<string>(receivedData?.test),
+				testInputs: tryCast<string>(receivedData?.testInput) ? (receivedData?.testInput as string).split("\n").filter(s => s.length > 0) : undefined,
+				outputRegex: tryCast<string>(receivedData?.outputRegex) ? new RegExp(receivedData?.outputRegex as string) : undefined
+			}
+			setPredefinedCode(newPredefCode);
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
 			updateHeight(numberOfLines);
 			setLoaded(true);
@@ -99,16 +99,13 @@ export const Sandbox = () => {
 	}, [receivedData]);
 
 	useEffect(() => {
-		updateHeight(lastNumberOfLines, !!feedback);
+		updateHeight(lastNumberOfLines, undefined !== feedback);
 	}, [feedback]);
 
 	const terminalWrite = (output: string) => {
 		if (xterm) {
-			// @ts-ignore
-			xterm._core.buffer.x = 0;
 			xterm.write(output.replaceAll("\n", "\r\n"));
 		}
-
 	}
 
 	const clearTerminal = () => {
@@ -117,15 +114,23 @@ export const Sandbox = () => {
 	}
 
 	const handleSuccess = (finalOutput: string) => {
-		doChecks(predefinedCode.test, editorRef?.current?.getCode() || "", finalOutput).then((result: string) => {
+		doChecks(editorRef?.current?.getCode() || "", finalOutput, predefinedCode.test, predefinedCode.testInputs, predefinedCode.outputRegex).then((result: string) => {
 			sendMessage({type: "checker", result: result});
-		}).catch((error: string) => {
-			// This only happens if the checking code fails to compile/run correctly
-			sendMessage({type: "checkerFail", message: error});
+		}).catch(({error, isProgrammaticUserError}: {error: string, isProgrammaticUserError: boolean}) => {
+			if (isProgrammaticUserError) {
+				// This only happens if the checking code fails to compile/run correctly
+				sendMessage({type: "checkerFail", message: error});
+			} else {
+				// This happens when the output is incorrect
+				setFeedback({
+					succeeded: false,
+					message: error.replace(/ on line \d+/, "")
+				});
+			}
 		});
 	};
 
-	const printError = (error: string) => {
+	const printError = ({error, isProgrammaticUserError}: {error: string, isProgrammaticUserError: boolean}) => {
 		setFeedback({
 			succeeded: false,
 			message: error
@@ -141,21 +146,33 @@ export const Sandbox = () => {
 			return resolve("");
 		}
 
-		let cleanUpListener: () => void;
-
 		const onDataListener = xterm.onData((s: string) => {
 			const cleanUpAndRecurse = (newInput: string) => {
-				cleanUpListener();
+				onDataListener.dispose();
 				handleSingleInputChar(newInput).then(resolve).catch(reject);
 			}
 
 			switch (s) {
 				case '\u0003': // Ctrl+C
-					xterm.write('^C');
+					const xtermSelection = xterm.getSelection();
+					navigator.clipboard.writeText(xtermSelection).then(() => {
+						console.log(`Copied: ${xtermSelection} to clipboard!`);
+					}).catch(() => {
+						console.log("Failed");
+					}); // Could make this show a "copied to clipboard" popup?
 					cleanUpAndRecurse(input);
 					return;
+				case '\u0016': // Ctrl+V
+					navigator.clipboard.readText().then((s) => {
+						cleanUpAndRecurse(input + s);
+						xterm.write(s);
+					}).catch(() => {
+						cleanUpAndRecurse(input);
+					});
+					onDataListener.dispose();
+					return;
 				case '\r': // Enter
-					cleanUpListener();
+					onDataListener.dispose();
 					xterm.write("\r\n");
 					resolve(input);
 					return;
@@ -163,7 +180,6 @@ export const Sandbox = () => {
 					return;
 				case '\u007F': // Backspace (DEL)
 					// Do not delete the prompt
-					// @ts-ignore
 					if (input.length > 0) {
 						xterm.write('\b \b');
 						cleanUpAndRecurse(input.slice(0, -1));
@@ -181,10 +197,6 @@ export const Sandbox = () => {
 			return;
 		});
 
-		cleanUpListener = () => {
-			onDataListener.dispose();
-		}
-
 	});
 
 	const handleInput = () => handleSingleInputChar("");
@@ -195,19 +207,16 @@ export const Sandbox = () => {
 		clearTerminal();
 		setRunning(true);
 
-		runSetupCode(predefinedCode.setup, terminalWrite, handleInput).then(() => {
-			return runCode(editorRef?.current?.getCode() || "",
-				terminalWrite,
-				handleInput,
-				handleSuccess,
-				printError,
-				{retainGlobals: true}
-			)
-		}).then(() => setRunning(false));
+		runSetupCode(terminalWrite, handleInput, predefinedCode.setup)
+			.catch(({error}) => sendMessage({type: "setupFail", message: error}))
+			.then(() => runCode(editorRef?.current?.getCode() || "", terminalWrite, handleInput, {retainGlobals: true}))
+			.then(handleSuccess)
+			.catch(printError)
+			.then(() => setRunning(false));
 	}
 
 	return <div ref={containerRef}>
-		<Editor initCode={predefinedCode.init} ref={editorRef} updateHeight={updateHeight} />
+		<Editor initCode={predefinedCode.code} ref={editorRef} updateHeight={updateHeight} />
 		<RunButton running={running} loaded={loaded} onClick={handleRunPython} />
 		<OutputTerminal setXTerm={setXTerm} succeeded={feedback?.succeeded} feedbackMessage={feedback?.message} clearFeedback={() => setFeedback(undefined)} />
 	</div>

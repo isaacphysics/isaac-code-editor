@@ -129,4 +129,12 @@ export const addMultipleEventListener = (el: HTMLElement, eventTypes: string[], 
     });
 }
 
-export const noop = () => undefined;
+export function tryCast<T>(value: unknown) {
+    if (undefined === value || null === value) {
+        return undefined;
+    } else {
+        return value as T;
+    }
+}
+
+export const noop = () => {};
