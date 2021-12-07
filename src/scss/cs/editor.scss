@@ -27,25 +27,27 @@
 .feedback-banner {
   font-family: Consolas, monospace;
   margin: 0;
-  position: sticky;
+  position: absolute;
+  width: 100%;
   top: 0;
   left: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   color: white;
+  white-space: nowrap;
+  padding-left: 30px !important;
+  z-index: 99;
 
-  .feedback-message {
-    padding-left: 20px;
-    .feedback-button {
-      background: 0 0;
-      font-weight: 700;
-      font-size: 120%;
-      margin-top: -0.2rem;
-      position: absolute;
-      left: 3px;
-      opacity: 1;
-      text-shadow: 0 1px 0 #FFFFFF55;
-      color: white;
-    }
+  .feedback-button {
+    background: 0 0;
+    font-weight: 700;
+    font-size: 120%;
+    margin-top: -0.2rem;
+    position: absolute;
+    left: 3px;
+    opacity: 1;
+    text-shadow: 0 1px 0 #FFFFFF55;
+    color: white;
   }
 }
 

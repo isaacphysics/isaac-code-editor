@@ -129,11 +129,11 @@ export const addMultipleEventListener = (el: HTMLElement, eventTypes: string[], 
     });
 }
 
-export function tryCast<T>(value: unknown) {
-    if (undefined === value || null === value) {
+export function tryCastString(value: unknown) {
+    if (undefined === value || null === value || "" === value) {
         return undefined;
     } else {
-        return value as T;
+        return value as string;
     }
 }
 

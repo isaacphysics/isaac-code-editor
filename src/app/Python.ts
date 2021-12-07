@@ -1,6 +1,7 @@
 // @ts-ignore skulpt doesn't have typings
 import Sk from "skulpt"
 import {noop} from "./services/utils";
+import {ERRORS, UNDEFINED_CHECKER_RESULT} from "./constants";
 
 // Transpile and run a snippet of python code
 export const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>, skulptOptions= {}) => new Promise<string>((resolve, reject) => {
@@ -31,11 +32,11 @@ export const runCode = (code: string, printOutput: (output: string) => void, han
 		resolve(finalOutput);
 	}).catch((err: any) => {
 		switch(err.tp$name) {
-			case "TimeLimitError":
-				reject({error: "Your program took too long to execute! Are there any infinite loops?", isProgrammaticError: true});
+			case ERRORS.TimeLimitError:
+				reject({error: "Your program took too long to execute! Are there any infinite loops?"});
 				break;
 			default:
-				reject({error: err.toString(), isProgrammaticError: true});
+				reject({error: err.toString()});
 		}
 	});
 });
@@ -48,30 +49,41 @@ export function runSetupCode(printOutput: (output: string) => void, handleInput:
 	}
 }
 
-export function doChecks(mainCode: string, output: string, testCode?: string, testInputs?: string[], outputRegex?: RegExp) {
+export function doChecks(mainCode: string, output: string, testCode?: string, testInputs?: string[], outputRegex?: RegExp, useAllTestInputs?: boolean) {
 	if (testCode) {
 		// Reverses the inputs, importantly by returning a new array and not doing it in place with .reverse()
 		const reversedInputs = testInputs?.reduce((acc: string[], x) => [x].concat(acc), []) ?? [];
+		let inputCount = reversedInputs.length;
 
 		// Every time "input()" is called, the first element of the test inputs is given as
 		//  the user input, and that element is removed from the list. If no test input is
-		//  available, the empty string is given.
-		const inputHandler = () => new Promise<string>(resolve => {
+		//  available, an error is thrown
+		const inputHandler = () => new Promise<string>((resolve, reject) => {
+			if (useAllTestInputs === true && reversedInputs.length === 0) {
+				reject({error: "Your program called input() too many times!"});
+			}
+			inputCount -= 1;
+			// @ts-ignore I've checked above whether there is an element to pop or not
 			resolve(reversedInputs.pop() || "");
 		});
 
 		const afterRun = (output: string) => new Promise<string>((resolve, reject) => {
 			// Check output matches regex first
 			if (outputRegex && !outputRegex.test(output)) {
-				reject({error: "Your program produced unexpected output!", isProgrammaticError: false});
+				// If the output does not match the provided regex
+				reject({error: "Your program produced unexpected output!"});
+			} else if (useAllTestInputs === true && inputCount !== 0) {
+				// If the number of inputs used was not exactly the number provided, and the user had to use all available
+				//  test inputs, then this is an error
+				reject({error: "Your program didn't call input() enough times!"});
 			} else {
-				resolve(Sk.globals["checkerResult"].v.toString());
+				resolve(undefined === Sk.globals["checkerResult"] ? UNDEFINED_CHECKER_RESULT : Sk.globals["checkerResult"].v.toString());
 			}
 		});
 
 		return runCode(testCode, noop, inputHandler, {retainGlobals: true}).then(afterRun);
 	} else {
-		return new Promise<string>(resolve => resolve(""));
+		return new Promise<string>(resolve => resolve(UNDEFINED_CHECKER_RESULT));
 	}
 }
 

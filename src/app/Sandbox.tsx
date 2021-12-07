@@ -3,8 +3,9 @@ import {RunButton} from "./RunButton";
 import {OutputTerminal} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {doChecks, runCode, runSetupCode} from "./Python";
-import {tryCast, useIFrameMessages} from "./services/utils";
+import {tryCastString, useIFrameMessages} from "./services/utils";
 import {Terminal} from "xterm";
+import {MESSAGE_TYPES} from "./constants";
 
 const terminalInitialText = "Isaac Python - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
@@ -17,8 +18,10 @@ export interface Feedback {
 export interface PredefinedCode {
 	setup?: string;
 	code?: string;
+	wrapCodeInMain?: boolean;
 	test?: string;
 	testInputs?: string[];
+	useAllTestInputs?: boolean;
 	outputRegex?: RegExp;
 }
 
@@ -32,7 +35,6 @@ const editorYPaddingBorderAndMargin = 23 + 2 + 16;
 const buttonHeightAndYMargin = 50 + 16;
 const terminalHeight = 200;
 const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + buttonHeightAndYMargin + terminalHeight;
-const feedbackHeight = 42;
 
 export const Sandbox = () => {
 	const [loaded, setLoaded] = useState<boolean>(false);
@@ -45,19 +47,16 @@ export const Sandbox = () => {
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
-	const [lastNumberOfLines, setLastNumberOfLines] = useState<number>();
-
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	const updateHeight = useCallback((editorLines?: number, forceFeedbackShow?: boolean) => {
+	const updateHeight = useCallback((editorLines?: number) => {
 		if (containerRef?.current && editorLines && editorLines <= 11) {
-			setLastNumberOfLines(editorLines);
 			sendMessage({
-				type: "resize",
-				height: heightOfEditorLine * editorLines + nonVariableHeight + ((forceFeedbackShow ?? feedback) ? feedbackHeight : 0)
+				type: MESSAGE_TYPES.RESIZE,
+				height: heightOfEditorLine * (editorLines + 1) + nonVariableHeight
 			});
 		}
-	}, [containerRef, sendMessage, feedback, setLastNumberOfLines]);
+	}, [containerRef, sendMessage]);
 	
 	useEffect(() => {
 		if (undefined === receivedData) return;
@@ -77,30 +76,30 @@ export const Sandbox = () => {
 		 *     message: "Congratulations, you passed the test!"
 		 * }
 		 */
-		if (receivedData.type === "initialise") {
-
+		if (receivedData.type === MESSAGE_TYPES.INITIALISE) {
 			const newPredefCode = {
-				setup: tryCast<string>(receivedData?.setup),
-				code: tryCast<string>(receivedData?.code),
-				test: tryCast<string>(receivedData?.test),
-				testInputs: tryCast<string>(receivedData?.testInput) ? (receivedData?.testInput as string).split("\n").filter(s => s.length > 0) : undefined,
-				outputRegex: tryCast<string>(receivedData?.outputRegex) ? new RegExp(receivedData?.outputRegex as string) : undefined
+				setup: tryCastString(receivedData?.setup),
+				//code: tryCastString(receivedData?.code),
+				code: "age = int(input(\"Please enter an accepted age \"))\n" +
+					"while age <= 18:\n" +
+					"    age = int(input(\"Please enter an accepted age \"))\n",
+				wrapCodeInMain: receivedData?.wrapCodeInMain ? receivedData?.wrapCodeInMain as boolean : undefined,
+				test: tryCastString(receivedData?.test),
+				testInputs: tryCastString(receivedData?.testInput) ? (receivedData?.testInput as string).split("\n").filter(s => s.length > 0) : undefined,
+				useAllTestInputs: receivedData?.useAllTestInputs ? receivedData?.useAllTestInputs as boolean : undefined,
+				outputRegex: tryCastString(receivedData?.outputRegex) ? new RegExp(receivedData?.outputRegex as string) : undefined
 			}
 			setPredefinedCode(newPredefCode);
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
 			updateHeight(numberOfLines);
 			setLoaded(true);
-		} else if(receivedData.type === "feedback") {
+		} else if(receivedData.type === MESSAGE_TYPES.FEEDBACK) {
 			setFeedback({
 				succeeded: receivedData.succeeded as boolean,
 				message: receivedData.message as string
 			});
 		}
 	}, [receivedData]);
-
-	useEffect(() => {
-		updateHeight(lastNumberOfLines, undefined !== feedback);
-	}, [feedback]);
 
 	const terminalWrite = (output: string) => {
 		if (xterm) {
@@ -114,26 +113,15 @@ export const Sandbox = () => {
 	}
 
 	const handleSuccess = (finalOutput: string) => {
-		doChecks(editorRef?.current?.getCode() || "", finalOutput, predefinedCode.test, predefinedCode.testInputs, predefinedCode.outputRegex).then((result: string) => {
-			sendMessage({type: "checker", result: result});
-		}).catch(({error, isProgrammaticUserError}: {error: string, isProgrammaticUserError: boolean}) => {
-			if (isProgrammaticUserError) {
-				// This only happens if the checking code fails to compile/run correctly
-				sendMessage({type: "checkerFail", message: error});
-			} else {
-				// This happens when the output is incorrect
-				setFeedback({
-					succeeded: false,
-					message: error.replace(/ on line \d+/, "")
-				});
-			}
+		return doChecks(editorRef?.current?.getCode() || "", finalOutput, predefinedCode.test, predefinedCode.testInputs, predefinedCode.outputRegex, predefinedCode.useAllTestInputs).then((result: string) => {
+			sendMessage({type: MESSAGE_TYPES.CHECKER, result: result});
 		});
 	};
 
-	const printError = ({error, isProgrammaticUserError}: {error: string, isProgrammaticUserError: boolean}) => {
+	const printError = ({error}: {error: string}) => {
 		setFeedback({
 			succeeded: false,
-			message: error
+			message: error.replace(/ on line \d+/, "")
 		});
 	}
 
@@ -158,7 +146,7 @@ export const Sandbox = () => {
 					navigator.clipboard.writeText(xtermSelection).then(() => {
 						console.log(`Copied: ${xtermSelection} to clipboard!`);
 					}).catch(() => {
-						console.log("Failed");
+						console.log("Failed to copy selection to clipboard");
 					}); // Could make this show a "copied to clipboard" popup?
 					cleanUpAndRecurse(input);
 					return;
@@ -208,8 +196,14 @@ export const Sandbox = () => {
 		setRunning(true);
 
 		runSetupCode(terminalWrite, handleInput, predefinedCode.setup)
-			.catch(({error}) => sendMessage({type: "setupFail", message: error}))
-			.then(() => runCode(editorRef?.current?.getCode() || "", terminalWrite, handleInput, {retainGlobals: true}))
+			.catch(({error}) => sendMessage({type: MESSAGE_TYPES.SETUP_FAIL, message: error}))
+			.then(() => {
+				let code = editorRef?.current?.getCode() || "";
+				if (predefinedCode.wrapCodeInMain) {
+					code = "def main():\n" + code.split("\n").map(s => "\t" + s).join("\n");
+				}
+				return runCode(code, terminalWrite, handleInput, {retainGlobals: true})
+			})
 			.then(handleSuccess)
 			.catch(printError)
 			.then(() => setRunning(false));

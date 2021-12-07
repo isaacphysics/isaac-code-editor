@@ -46,7 +46,7 @@ export const OutputTerminal = ({setXTerm, feedbackMessage, clearFeedback, succee
 			newTerm.loadAddon(new WebglAddon());
 			isWebglEnabled = true;
 		} catch (e) {
-			console.warn('WebGL addon threw an exception during load', e);
+			console.warn("WebGL addon threw an exception during load", e);
 		}
 
 		const fitAddon = new FitAddon();
@@ -61,8 +61,8 @@ export const OutputTerminal = ({setXTerm, feedbackMessage, clearFeedback, succee
 		const stopScrollProp = (e: Event) => {
 			e.preventDefault();
 		}
-		xtermDiv.current.addEventListener('wheel', stopScrollProp);
-		xtermDiv.current.addEventListener('scroll', stopScrollProp);
+		xtermDiv.current.addEventListener("wheel", stopScrollProp);
+		xtermDiv.current.addEventListener("scroll", stopScrollProp);
 
 		newTerm.attachCustomKeyEventHandler((e) => {
 			// Don't process the key if it is ctrl-c (or cmd-c on Mac)
@@ -72,18 +72,18 @@ export const OutputTerminal = ({setXTerm, feedbackMessage, clearFeedback, succee
 		return () => {
 			newTerm.dispose();
 			window.removeEventListener("resize", fit);
-			xtermDiv?.current?.removeEventListener('wheel', stopScrollProp);
-			xtermDiv?.current?.removeEventListener('scroll', stopScrollProp);
+			xtermDiv?.current?.removeEventListener("wheel", stopScrollProp);
+			xtermDiv?.current?.removeEventListener("scroll", stopScrollProp);
 		}
 	}, []);
 
 	return <>
-		{feedbackMessage &&
-		// Feedback banner
-		<div className={"feedback-banner w-100 p-2 " + (succeeded ? "feedback-success" : "feedback-error")} style={{borderTopLeftRadius: "5px", borderTopRightRadius: "5px"}}>
-			<span className={"feedback-message"}>{feedbackMessage}<button className={"feedback-button"} onClick={clearFeedback}>&times;</button></span>
-		</div>}
-		<div style={{height: "200px", backgroundColor: "#000000", borderBottomLeftRadius: "5px", borderBottomRightRadius: "5px", borderTopLeftRadius: feedbackMessage ? 0 : "5px", borderTopRightRadius: feedbackMessage ? 0 : "5px", padding: "10px 20px", paddingRight: "10px"}}>
+		<div style={{height: "200px", backgroundColor: "#000000",borderRadius: "5px", padding: "10px 20px", paddingRight: "10px", position: "relative"}}>
+			{feedbackMessage &&
+			// Feedback banner
+			<div className={"feedback-banner p-2 " + (succeeded ? "feedback-success" : "feedback-error")} style={{borderTopLeftRadius: "5px", borderTopRightRadius: "5px"}}>
+				<button className={"feedback-button"} onClick={clearFeedback}>&times;</button>{feedbackMessage}
+			</div>}
 			<div id={"output-terminal"} className={"w-100 h-100"} ref={xtermDiv} />
 		</div>
 	</>;
