@@ -15,8 +15,10 @@ var baseTheme = {
 	brightGreen: '#72FF72',
 	yellow: '#CCCC5B',
 	brightYellow: '#FFFF72',
-	blue: '#5D5DD3',
-	brightBlue: '#7279FF',
+	blue: '#e0a851',
+	brightBlue: '#ffb53f',
+	// blue: '#5D5DD3',
+	// brightBlue: '#7279FF',
 	magenta: '#BC5ED1',
 	brightMagenta: '#E572FF',
 	cyan: '#5DA5D5',
@@ -25,9 +27,9 @@ var baseTheme = {
 	brightWhite: '#FFFFFF'
 };
 
-interface OutputTerminalProps {setXTerm: (t: Terminal) => void, feedbackMessage?: string, clearFeedback?: () => void, succeeded?: boolean}
+interface OutputTerminalProps {setXTerm: (t: Terminal) => void}
 
-export const OutputTerminal = ({setXTerm, feedbackMessage, clearFeedback, succeeded}: OutputTerminalProps) => {
+export const OutputTerminal = ({setXTerm}: OutputTerminalProps) => {
 
 	const xtermDiv = useRef<HTMLDivElement>(null);
 
@@ -66,6 +68,7 @@ export const OutputTerminal = ({setXTerm, feedbackMessage, clearFeedback, succee
 
 		newTerm.attachCustomKeyEventHandler((e) => {
 			// Don't process the key if it is ctrl-c (or cmd-c on Mac)
+			// This means that the copy key event doesn't clear the terminal selection
 			return !((e.ctrlKey || e.metaKey) && e.key === "c");
 		});
 
@@ -77,14 +80,7 @@ export const OutputTerminal = ({setXTerm, feedbackMessage, clearFeedback, succee
 		}
 	}, []);
 
-	return <>
-		<div style={{height: "200px", backgroundColor: "#000000",borderRadius: "5px", padding: "10px 20px", paddingRight: "10px", position: "relative"}}>
-			{feedbackMessage &&
-			// Feedback banner
-			<div className={"feedback-banner p-2 " + (succeeded ? "feedback-success" : "feedback-error")} style={{borderTopLeftRadius: "5px", borderTopRightRadius: "5px"}}>
-				<button className={"feedback-button"} onClick={clearFeedback}>&times;</button>{feedbackMessage}
-			</div>}
-			<div id={"output-terminal"} className={"w-100 h-100"} ref={xtermDiv} />
-		</div>
-	</>;
+	return <div className={"output-terminal-container"}>
+		<div id={"output-terminal"} className={"w-100 h-100"} ref={xtermDiv} />
+	</div>;
 };
