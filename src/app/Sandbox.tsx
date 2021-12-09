@@ -13,6 +13,7 @@ const uid = window.location.hash.substring(1);
 export interface Feedback {
 	succeeded: boolean;
 	message: string;
+	isTest?: boolean;
 }
 
 export interface PredefinedCode {
@@ -78,13 +79,10 @@ export const Sandbox = () => {
 		 */
 		if (receivedData.type === MESSAGE_TYPES.INITIALISE) {
 			const newPredefCode = {
-				setup: tryCastString(receivedData?.setup),
+				setup: "class TestError(Exception):\n\tpass\n" + (tryCastString(receivedData?.setup) ?? ""),
 				code: tryCastString(receivedData?.code),
 				wrapCodeInMain: receivedData?.wrapCodeInMain ? receivedData?.wrapCodeInMain as boolean : undefined,
-				test: tryCastString(receivedData?.test),
-				testInputs: tryCastString(receivedData?.testInput) ? (receivedData?.testInput as string).split("\n").filter(s => s.length > 0) : undefined,
-				useAllTestInputs: receivedData?.useAllTestInputs ? receivedData?.useAllTestInputs as boolean : undefined,
-				outputRegex: tryCastString(receivedData?.outputRegex) ? new RegExp(receivedData?.outputRegex as string) : undefined
+				test: tryCastString(receivedData?.test)
 			}
 			setPredefinedCode(newPredefCode);
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
@@ -108,15 +106,22 @@ export const Sandbox = () => {
 		xterm?.clear();
 	}
 
-	const printFeedback = ({succeeded, message}: Feedback) => {
-		xterm?.write(`\x1b[${succeeded ? "32" : "31"};1m` + message + "\x1b[0m\r\n");
+	const printFeedback = ({succeeded, message, isTest}: Feedback) => {
+		xterm?.write(`\x1b[${succeeded ? "32" : "31"};1m` + (isTest ? "> " : "") + message + (succeeded && isTest ? " \u2714" : "") + "\x1b[0m\r\n");
 	}
 
-	const printError = ({error}: {error: string}) => {
+	const printError = ({error, isTestError}: {error: string, isTestError?: boolean}) => {
 		printFeedback({
 			succeeded: false,
-			message: error?.replace(/ on line \d+/, "") ?? "Undefined error (sorry, this particular code snippet may be broken)"
+			message: (error?.replace(/ on line \d+/, "") ?? "Undefined error (sorry, this particular code snippet may be broken)"),
+			isTest: isTestError
 		});
+		if (isTestError === true) {
+			printFeedback({
+				succeeded: false,
+				message: "Your code failed at least one test!"
+			});
+		}
 	}
 
 	const editorRef = useRef<{getCode: () => string | undefined}>(null);
@@ -195,11 +200,8 @@ export const Sandbox = () => {
 		//  available, the last one is 'replayed'
 		const testInputHandler = () => new Promise<string>((resolve, reject) => {
 			inputCount -= 1;
-			if (reversedInputs.length === 1) {
-				resolve(reversedInputs[0]);
-			} else if (reversedInputs.length === 0) {
-				printFeedback({succeeded: false, message: "> Your program asked for input when none was expected, so we couldn't give it a valid input..."});
-				reject({error: "Your code failed at least one test"});
+			if (reversedInputs.length === 0) {
+				reject({error: "Your program asked for input when none was expected, so we couldn't give it a valid input...", isTestError: true});
 			} else {
 				// @ts-ignore There is definitely an input here
 				resolve(reversedInputs.pop());
@@ -215,32 +217,35 @@ export const Sandbox = () => {
 				outputRegex = re ? RegExp(re) : undefined;
 			},
 			runCurrentTest: (currentOutput: string, allInputsMustBeUsed: boolean, successMessage: string | undefined, failMessage: string | undefined) => {
-				// Check output matches regex given
-				if (outputRegex) {
-					if (!outputRegex.test(currentOutput)) {
-						// If the output does not match the provided regex
-						return `> ${failMessage ?? "Your program produced unexpected output..."}`;
-					} else if (undefined === successMessage) {
-						printFeedback({succeeded: true, message: "> The output of your program looks good \u2714"});
+				return new Promise((resolve, reject) => {
+					// Check output matches regex given
+					if (outputRegex) {
+						if (!outputRegex.test(currentOutput)) {
+							// If the output does not match the provided regex
+							reject({error: failMessage ?? "Your program produced unexpected output...", isTestError: true});
+						} else if (undefined === successMessage) {
+							printFeedback({succeeded: true, message: "The output of your program looks good", isTest: true});
+						}
 					}
-				}
-				// Check whether all inputs were used (if needed)
-				if (allInputsMustBeUsed) {
-					if (inputCount > 0) {
-						// If the number of inputs used was not exactly the number provided, and the user had to use all available
-						//  test inputs, then this is an error
-						return `> ${failMessage ?? "Your program didn't call input() enough times..."}`;
-					} else if (inputCount < 0) {
-						return `> ${failMessage ?? "Your program called input() too many times..."}`;
-					} else if (undefined === successMessage) {
-						printFeedback({succeeded: true, message: "> Your program accepted the correct number of inputs \u2714"});
+					// Check whether all inputs were used (if needed)
+					if (allInputsMustBeUsed) {
+						if (inputCount > 0) {
+							// If the number of inputs used was not exactly the number provided, and the user had to use all available
+							//  test inputs, then this is an error
+							reject({error: failMessage ?? "Your program didn't call input() enough times...", isTestError: true});
+						} else if (inputCount < 0) {
+							reject({error: failMessage ?? "Your program called input() too many times...", isTestError: true});
+						} else if (undefined === successMessage) {
+							printFeedback({succeeded: true, message: "Your program accepted the correct number of inputs", isTest: true});
+						}
 					}
-				}
-				if (successMessage) {
-					printFeedback({succeeded: true, message: "> " + successMessage + " \u2714"});
-				} else if (!allInputsMustBeUsed && (undefined === outputRegex)) {
-					printFeedback({succeeded: true, message: "> Test passed \u2714"});
-				}
+					if (successMessage) {
+						printFeedback({succeeded: true, message: successMessage, isTest: true});
+					} else if (!allInputsMustBeUsed && (undefined === outputRegex)) {
+						printFeedback({succeeded: true, message: "Test passed", isTest: true});
+					}
+					resolve();
+				});
 			}
 		}
 

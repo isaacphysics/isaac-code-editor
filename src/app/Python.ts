@@ -6,7 +6,7 @@ import {ERRORS, UNDEFINED_CHECKER_RESULT} from "./constants";
 export interface TestCallbacks {
 	setTestInputs: (inputs?: string[]) => void;
 	setTestRegex: (re?: string) => void;
-	runCurrentTest: (currentOutput: string, allInputsMustBeUsed: boolean, successMessage?: string, failMessage?: string) => string | undefined;
+	runCurrentTest: (currentOutput: string, allInputsMustBeUsed: boolean, successMessage?: string, failMessage?: string) => Promise<void>;
 }
 
 // Transpile and run a snippet of python code
@@ -69,14 +69,11 @@ export const runCode = (code: string, printOutput: (output: string) => void, han
 			throw {error: "'allInputsMustBeUsed' must be a boolean"};
 		}
 
-		const testFailMessage = testCallbacks.runCurrentTest(outputSinceLastTest, useAllInputs, successMessage, failMessage);
-		outputSinceLastTest = "";
-
-		if (undefined === testFailMessage) {
-			return;
-		} else {
-			throw {error: testFailMessage + "\r\nYour code failed at least one test"};
-		}
+		testCallbacks.runCurrentTest(outputSinceLastTest, useAllInputs, successMessage, failMessage)
+			.then(() => {
+				outputSinceLastTest = ""
+			})
+			.catch(reject);
 	}
 
 	Sk.builtins = {
@@ -117,6 +114,9 @@ export const runCode = (code: string, printOutput: (output: string) => void, han
 				break;
 			case ERRORS.EXTERNAL_ERROR:
 				reject({error: err.nativeError.error});
+				break;
+			case ERRORS.TEST_ERROR:
+				reject({error: err.toString().slice(11), isTestError: true});
 				break;
 			default:
 				reject({error: err.toString()});
