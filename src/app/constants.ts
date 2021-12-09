@@ -23,6 +23,6 @@ export const EXEC_STATE = {
     STOPPED: "STOPPED"
 }
 
-export const LANGUAGES: Record<string, ILanguage> = {
-    "python": pythonLanguage
-}
+export const LANGUAGES = new Map<string, ILanguage>([
+    ["python", pythonLanguage]
+]);

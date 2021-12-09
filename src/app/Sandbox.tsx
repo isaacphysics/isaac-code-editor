@@ -203,16 +203,18 @@ export const Sandbox = () => {
 		sendMessage({type: MESSAGE_TYPES.SETUP_FAIL, message: error});
 	}
 
-	// Dependant on xterm character encoding
+	// Dependant on xterm character encoding - will need changing for a different terminal
 	const printFeedback = ({succeeded, message, isTest}: Feedback) => {
 		xterm && xtermInterface(xterm).output(`\x1b[${succeeded ? "32" : "31"};1m` + (isTest ? "> " : "") + message + (succeeded && isTest ? " \u2714" : "") + "\x1b[0m\r\n")
 	}
 
 	const callHandleRun = (doChecks?: boolean) => () => {
 		if (!loaded || !xterm) return;
-		setRunning(doChecks ? EXEC_STATE.CHECKING : EXEC_STATE.RUNNING);
-		if (predefinedCode.language) {
-			handleRun(xtermInterface(xterm), LANGUAGES[predefinedCode.language], codeRef?.current?.getCode() || "", predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, sendCheckerResult, alertSetupCodeFail, doChecks)
+
+		const language = LANGUAGES.get(predefinedCode?.language ?? "");
+		if (language) {
+			setRunning(doChecks ? EXEC_STATE.CHECKING : EXEC_STATE.RUNNING);
+			handleRun(xtermInterface(xterm), language, codeRef?.current?.getCode() || "", predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, sendCheckerResult, alertSetupCodeFail, doChecks)
 				.then(() => setRunning(EXEC_STATE.STOPPED));
 		} else {
 			alertSetupCodeFail("Unknown programming language - unable to run code!");
