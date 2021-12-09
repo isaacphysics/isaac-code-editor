@@ -2,15 +2,10 @@
 import Sk from "skulpt"
 import {noop} from "./services/utils";
 import {ERRORS, UNDEFINED_CHECKER_RESULT} from "./constants";
-
-export interface TestCallbacks {
-	setTestInputs: (inputs?: string[]) => void;
-	setTestRegex: (re?: string) => void;
-	runCurrentTest: (currentOutput: string, allInputsMustBeUsed: boolean, successMessage?: string, failMessage?: string) => Promise<void>;
-}
+import {ILanguage, TestCallbacks} from "./types";
 
 // Transpile and run a snippet of python code
-export const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>, skulptOptions= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
+const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>, skulptOptions= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
 
 	let finalOutput = "";
 	let outputSinceLastTest = "";
@@ -76,6 +71,13 @@ export const runCode = (code: string, printOutput: (output: string) => void, han
 			.catch(reject);
 	}
 
+	function builtinRead(x: string) {
+		if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+			throw new Error("File not found: '" + x + "'");
+		return Sk.builtinFiles["files"][x];
+	}
+
+	// Make the custom test functions available in Python
 	Sk.builtins = {
 		...Sk.builtins,
 		"startTest": startTest,
@@ -113,7 +115,7 @@ export const runCode = (code: string, printOutput: (output: string) => void, han
 				reject({error: "Your program took too long to execute! Are there any infinite loops?"});
 				break;
 			case ERRORS.EXTERNAL_ERROR:
-				reject({error: err.nativeError.error});
+				reject({error: err.nativeError.error, isTestError: err.nativeError.isTestError});
 				break;
 			case ERRORS.TEST_ERROR:
 				reject({error: err.toString().slice(11), isTestError: true});
@@ -124,7 +126,7 @@ export const runCode = (code: string, printOutput: (output: string) => void, han
 	});
 });
 
-export function runSetupCode(printOutput: (output: string) => void, handleInput: () => Promise<string>, setupCode?: string, testCallbacks?: TestCallbacks) {
+function runSetupCode(printOutput: (output: string) => void, handleInput: () => Promise<string>, setupCode?: string, testCallbacks?: TestCallbacks) {
 	if (setupCode) {
 		return runCode(setupCode, printOutput, handleInput, {retainGlobals: true}, testCallbacks);
 	} else {
@@ -132,18 +134,20 @@ export function runSetupCode(printOutput: (output: string) => void, handleInput:
 	}
 }
 
-export function runTests(mainCode: string, output: string, handleInput: () => Promise<string>, afterRun: (output: string, checkerResult: string) => Promise<string>, testCode?: string, testCallbacks?: TestCallbacks) {
+function runTests(output: string, handleInput: () => Promise<string>, testCode?: string, testCallbacks?: TestCallbacks) {
 	if (testCode) {
-		return runCode(testCode, noop, handleInput, {retainGlobals: true}, testCallbacks).then((finalOutput) => {
-			return afterRun(output + finalOutput, Sk.globals["checkerResult"]?.v?.toString() ?? UNDEFINED_CHECKER_RESULT)
+		return runCode(testCode, noop, handleInput, {retainGlobals: true}, testCallbacks).then((testOutput) => {
+			// Do something with output + testOutput maybe?
+			return Sk.globals["checkerResult"]?.v?.toString() ?? UNDEFINED_CHECKER_RESULT;
 		});
 	} else {
-		return afterRun(output, UNDEFINED_CHECKER_RESULT);
+		return new Promise<string>(() => UNDEFINED_CHECKER_RESULT);
 	}
 }
 
-function builtinRead(x: string) {
-	if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
-		throw new Error("File not found: '" + x + "'");
-	return Sk.builtinFiles["files"][x];
+export const pythonLanguage: ILanguage = {
+	runCode: runCode,
+	runSetupCode: runSetupCode,
+	runTests: runTests,
+	wrapInMain: (code, doChecks) => "def main():\n" + code.split("\n").map(s => "\t" + s).join("\n") + (!doChecks ? "\nmain()" : "")
 }

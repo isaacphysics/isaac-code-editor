@@ -1,3 +1,6 @@
+import {pythonLanguage} from "./Python";
+import {ILanguage} from "./types";
+
 export const UNDEFINED_CHECKER_RESULT = "UNDEFINED_CHECKER_RESULT";
 
 export const ERRORS = {
@@ -18,4 +21,8 @@ export const EXEC_STATE = {
     RUNNING: "RUNNING",
     CHECKING: "CHECKING",
     STOPPED: "STOPPED"
+}
+
+export const LANGUAGES: Record<string, ILanguage> = {
+    "python": pythonLanguage
 }

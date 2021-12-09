@@ -1,30 +1,127 @@
 import {Editor} from "./Editor";
 import {RunButtons} from "./RunButtons";
-import {OutputTerminal} from "./OutputTerminal";
+import {OutputTerminal, xtermInterface} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {runTests, runCode, runSetupCode, TestCallbacks} from "./Python";
 import {noop, tryCastString, useIFrameMessages} from "./services/utils";
 import {Terminal} from "xterm";
-import {EXEC_STATE, MESSAGE_TYPES, UNDEFINED_CHECKER_RESULT} from "./constants";
+import {EXEC_STATE, LANGUAGES, MESSAGE_TYPES} from "./constants";
+import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage} from "./types";
 
 const terminalInitialText = "Isaac Python - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
 
-export interface Feedback {
-	succeeded: boolean;
-	message: string;
-	isTest?: boolean;
-}
+const handleRun = (terminal: ITerminal,
+				   language: ILanguage,
+				   code: string,
+				   setupCode: string | undefined,
+				   testCode: string | undefined,
+				   wrapCodeInMain: boolean | undefined,
+				   printFeedback: (f: Feedback) => void,
+				   onTestFinish: (checkerResult: string) => void,
+				   onSetupFail: (error: string) => void,
+				   doChecks: boolean | undefined) => {
 
-export interface PredefinedCode {
-	setup?: string;
-	code?: string;
-	wrapCodeInMain?: boolean;
-	test?: string;
-	testInputs?: string[];
-	useAllTestInputs?: boolean;
-	outputRegex?: RegExp;
-}
+	const printError = ({error, isTestError}: {error: string, isTestError?: boolean}) => {
+		printFeedback({
+			succeeded: false,
+			message: (error?.replace(/ on line \d+/, "") ?? "Undefined error (sorry, this particular code snippet may be broken)"),
+			isTest: isTestError
+		});
+		if (isTestError === true) {
+			printFeedback({
+				succeeded: false,
+				message: "Your code failed at least one test!"
+			});
+		}
+	}
+
+	// Reverses the inputs, importantly by returning a new array and not doing it in place with .reverse()
+	let reversedInputs: string[] = [];
+	let inputCount = 0;
+	let outputRegex: RegExp | undefined = undefined;
+
+	// Every time "input()" is called, the first element of the test inputs is given as
+	//  the user input, and that element is removed from the list. If no test input is
+	//  available, the last one is 'replayed'
+	const testInputHandler = () => new Promise<string>((resolve, reject) => {
+		inputCount -= 1;
+		if (reversedInputs.length === 0) {
+			reject({error: "Your program asked for input when none was expected, so we couldn't give it a valid input...", isTestError: true});
+		} else {
+			// @ts-ignore There is definitely an input here
+			resolve(reversedInputs.pop());
+		}
+	});
+
+	const testCallbacks: TestCallbacks = {
+		setTestInputs: (inputs: string[] | undefined) => {
+			reversedInputs = inputs?.reduce((acc: string[], x) => [x].concat(acc), []) ?? [];
+			inputCount = reversedInputs.length;
+		},
+		setTestRegex: (re: string | undefined) => {
+			outputRegex = re ? RegExp(re) : undefined;
+		},
+		runCurrentTest: (currentOutput: string, allInputsMustBeUsed: boolean, successMessage: string | undefined, failMessage: string | undefined) => {
+			return new Promise((resolve, reject) => {
+				// Check output matches regex given
+				if (outputRegex) {
+					if (!outputRegex.test(currentOutput)) {
+						// If the output does not match the provided regex
+						reject({error: failMessage ?? "Your program produced unexpected output...", isTestError: true});
+					} else if (undefined === successMessage) {
+						printFeedback({succeeded: true, message: "The output of your program looks good", isTest: true});
+					}
+				}
+				// Check whether all inputs were used (if needed)
+				if (allInputsMustBeUsed) {
+					if (inputCount > 0) {
+						// If the number of inputs used was not exactly the number provided, and the user had to use all available
+						//  test inputs, then this is an error
+						reject({error: failMessage ?? "Your program didn't call input() enough times...", isTestError: true});
+					} else if (inputCount < 0) {
+						reject({error: failMessage ?? "Your program called input() too many times...", isTestError: true});
+					} else if (undefined === successMessage) {
+						printFeedback({succeeded: true, message: "Your program accepted the correct number of inputs", isTest: true});
+					}
+				}
+				if (successMessage) {
+					printFeedback({succeeded: true, message: successMessage, isTest: true});
+				} else if (!allInputsMustBeUsed && (undefined === outputRegex)) {
+					printFeedback({succeeded: true, message: "Test passed", isTest: true});
+				}
+				resolve();
+			});
+		}
+	}
+
+	// First clear the terminal
+	terminal.clear();
+
+	// If tests are being run, indicate this to the user
+	if (doChecks) {
+		// Green apple unicode: "\ud83c\udf4f"
+		// Isaac CS banner: "\x1b[0m \x1b[1;44;30m    \u2b22     \x1b[0m"
+		terminal.output("\x1b[1mRunning tests...\r\n");
+	}
+
+	return language.runSetupCode(terminal.output, terminal.input, setupCode, testCallbacks)
+		.catch(({error}) => onSetupFail(error))
+		.then(() => {
+			// Wrap code in a 'main' function if specified by the content block
+			let modifiedCode = wrapCodeInMain ? language.wrapInMain(code, doChecks) : code;
+			return language.runCode(modifiedCode, doChecks ? noop : terminal.output, doChecks ? testInputHandler : terminal.input, {retainGlobals: true, execLimit: 2000 /* 2 seconds */})
+		})
+		.then((finalOutput) => {
+			// Run the tests only if the "Check" button was clicked
+			if (doChecks) {
+				return language.runTests(finalOutput, testInputHandler, testCode, testCallbacks)
+					.then((checkerResult: string) => {
+						onTestFinish(checkerResult);
+					});
+			}
+		})
+		.catch(printError);
+};
 
 // TODO Find a better way to do this
 // Predefined heights for iframe height calculation
@@ -48,6 +145,7 @@ export const Sandbox = () => {
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
 	const containerRef = useRef<HTMLDivElement>(null);
+	const codeRef = useRef<{getCode: () => string | undefined}>(null);
 	const [xterm, setXTerm] = useState<Terminal>();
 
 	const updateHeight = useCallback((editorLines?: number) => {
@@ -82,7 +180,8 @@ export const Sandbox = () => {
 				setup: "class TestError(Exception):\n\tpass\n" + (tryCastString(receivedData?.setup) ?? ""),
 				code: tryCastString(receivedData?.code),
 				wrapCodeInMain: receivedData?.wrapCodeInMain ? receivedData?.wrapCodeInMain as boolean : undefined,
-				test: tryCastString(receivedData?.test)
+				test: tryCastString(receivedData?.test),
+				language: tryCastString(receivedData?.language),
 			}
 			setPredefinedCode(newPredefCode);
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
@@ -96,204 +195,33 @@ export const Sandbox = () => {
 		}
 	}, [receivedData]);
 
-	const terminalWrite = (output: string) => {
-		if (xterm) {
-			xterm.write(output.replaceAll("\n", "\r\n"));
-		}
+	const sendCheckerResult = (checkerResult: string) => {
+		sendMessage({type: MESSAGE_TYPES.CHECKER, result: checkerResult});
 	}
 
-	const clearTerminal = () => {
-		xterm?.clear();
+	const alertSetupCodeFail = (error: string) => {
+		sendMessage({type: MESSAGE_TYPES.SETUP_FAIL, message: error});
 	}
 
+	// Dependant on xterm character encoding
 	const printFeedback = ({succeeded, message, isTest}: Feedback) => {
-		xterm?.write(`\x1b[${succeeded ? "32" : "31"};1m` + (isTest ? "> " : "") + message + (succeeded && isTest ? " \u2714" : "") + "\x1b[0m\r\n");
+		xterm && xtermInterface(xterm).output(`\x1b[${succeeded ? "32" : "31"};1m` + (isTest ? "> " : "") + message + (succeeded && isTest ? " \u2714" : "") + "\x1b[0m\r\n")
 	}
 
-	const printError = ({error, isTestError}: {error: string, isTestError?: boolean}) => {
-		printFeedback({
-			succeeded: false,
-			message: (error?.replace(/ on line \d+/, "") ?? "Undefined error (sorry, this particular code snippet may be broken)"),
-			isTest: isTestError
-		});
-		if (isTestError === true) {
-			printFeedback({
-				succeeded: false,
-				message: "Your code failed at least one test!"
-			});
-		}
-	}
-
-	const editorRef = useRef<{getCode: () => string | undefined}>(null);
-
-	const handleSingleInputChar = (input: string) => new Promise<string>((resolve, reject) => {
-		if (undefined === xterm) {
-			return resolve("");
-		}
-
-		const onDataListener = xterm.onData((s: string) => {
-			const cleanUpAndRecurse = (newInput: string) => {
-				onDataListener.dispose();
-				handleSingleInputChar(newInput).then(resolve).catch(reject);
-			}
-
-			switch (s) {
-				case '\u0003': // Ctrl+C
-					const xtermSelection = xterm.getSelection();
-					navigator.clipboard.writeText(xtermSelection).then(() => {
-						console.log(`Copied: ${xtermSelection} to clipboard!`);
-					}).catch(() => {
-						console.log("Failed to copy selection to clipboard");
-					}); // Could make this show a "copied to clipboard" popup?
-					cleanUpAndRecurse(input);
-					return;
-				case '\u0016': // Ctrl+V
-					navigator.clipboard.readText().then((s) => {
-						cleanUpAndRecurse(input + s);
-						xterm.write(s);
-					}).catch(() => {
-						cleanUpAndRecurse(input);
-					});
-					onDataListener.dispose();
-					return;
-				case '\r': // Enter
-					onDataListener.dispose();
-					xterm.write("\r\n");
-					resolve(input);
-					return;
-				case '\n': // Enter (don't handle second character generated)
-					return;
-				case '\u007F': // Backspace (DEL)
-					// Do not delete the prompt
-					if (input.length > 0) {
-						xterm.write('\b \b');
-						cleanUpAndRecurse(input.slice(0, -1));
-						return;
-					}
-					break;
-				default: // Print all other characters for demo
-					if (s >= String.fromCharCode(0x20) && s <= String.fromCharCode(0x7B) || s >= '\u00a0') {
-						xterm.write(s);
-						cleanUpAndRecurse(input + s);
-						return;
-					}
-			}
-			cleanUpAndRecurse(input);
-			return;
-		});
-
-	});
-
-	const handleRun = (doChecks?: boolean) => () => {
-		if (!loaded) return;
-
-		clearTerminal();
-
-		// Reverses the inputs, importantly by returning a new array and not doing it in place with .reverse()
-		//const reversedInputs = predefinedCode.testInputs?.reduce((acc: string[], x) => [x].concat(acc), []) ?? [];
-		let reversedInputs: string[] = [];
-		let inputCount = 0;
-		let outputRegex: RegExp | undefined = undefined;
-
-		// Every time "input()" is called, the first element of the test inputs is given as
-		//  the user input, and that element is removed from the list. If no test input is
-		//  available, the last one is 'replayed'
-		const testInputHandler = () => new Promise<string>((resolve, reject) => {
-			inputCount -= 1;
-			if (reversedInputs.length === 0) {
-				reject({error: "Your program asked for input when none was expected, so we couldn't give it a valid input...", isTestError: true});
-			} else {
-				// @ts-ignore There is definitely an input here
-				resolve(reversedInputs.pop());
-			}
-		});
-
-		const testCallbacks: TestCallbacks = {
-			setTestInputs: (inputs: string[] | undefined) => {
-				reversedInputs = inputs?.reduce((acc: string[], x) => [x].concat(acc), []) ?? [];
-				inputCount = reversedInputs.length;
-			},
-			setTestRegex: (re: string | undefined) => {
-				outputRegex = re ? RegExp(re) : undefined;
-			},
-			runCurrentTest: (currentOutput: string, allInputsMustBeUsed: boolean, successMessage: string | undefined, failMessage: string | undefined) => {
-				return new Promise((resolve, reject) => {
-					// Check output matches regex given
-					if (outputRegex) {
-						if (!outputRegex.test(currentOutput)) {
-							// If the output does not match the provided regex
-							reject({error: failMessage ?? "Your program produced unexpected output...", isTestError: true});
-						} else if (undefined === successMessage) {
-							printFeedback({succeeded: true, message: "The output of your program looks good", isTest: true});
-						}
-					}
-					// Check whether all inputs were used (if needed)
-					if (allInputsMustBeUsed) {
-						if (inputCount > 0) {
-							// If the number of inputs used was not exactly the number provided, and the user had to use all available
-							//  test inputs, then this is an error
-							reject({error: failMessage ?? "Your program didn't call input() enough times...", isTestError: true});
-						} else if (inputCount < 0) {
-							reject({error: failMessage ?? "Your program called input() too many times...", isTestError: true});
-						} else if (undefined === successMessage) {
-							printFeedback({succeeded: true, message: "Your program accepted the correct number of inputs", isTest: true});
-						}
-					}
-					if (successMessage) {
-						printFeedback({succeeded: true, message: successMessage, isTest: true});
-					} else if (!allInputsMustBeUsed && (undefined === outputRegex)) {
-						printFeedback({succeeded: true, message: "Test passed", isTest: true});
-					}
-					resolve();
-				});
-			}
-		}
-
-		const handleTerminalInput = () => handleSingleInputChar("");
-
-		const afterAllTestRun = (finalOutput: string, checkerResult: string) => new Promise<string>(resolve => {
-			// Catch anything that doesn't reject - just send off the checker result
-			resolve(checkerResult);
-		});
-
-		const runTestsAfterCode = (finalOutput: string) => {
-			return runTests(editorRef?.current?.getCode() || "", finalOutput, testInputHandler, afterAllTestRun, predefinedCode.test, testCallbacks).then((result: string) => {
-				sendMessage({type: MESSAGE_TYPES.CHECKER, result: result});
-			});
-		};
-
-		if (doChecks) {
-			// Green apple unicode: "\ud83c\udf4f"
-			// Isaac CS banner: "\x1b[0m \x1b[1;44;30m    \u2b22     \x1b[0m"
-			terminalWrite("\x1b[1mRunning tests...\r\n");
-		}
+	const callHandleRun = (doChecks?: boolean) => () => {
+		if (!loaded || !xterm) return;
 		setRunning(doChecks ? EXEC_STATE.CHECKING : EXEC_STATE.RUNNING);
-
-		runSetupCode(terminalWrite, handleTerminalInput, predefinedCode.setup, testCallbacks)
-			.catch(({error}) => sendMessage({type: MESSAGE_TYPES.SETUP_FAIL, message: error}))
-			.then(() => {
-				let code = editorRef?.current?.getCode() || "";
-				if (predefinedCode.wrapCodeInMain) {
-					code = "def main():\n" + code.split("\n").map(s => "\t" + s).join("\n");
-					if (!doChecks) {
-						code += "\nmain()";
-					}
-				}
-				return runCode(code, doChecks ? noop : terminalWrite, doChecks ? testInputHandler : handleTerminalInput, {retainGlobals: true, execLimit: 2000 /* 2 seconds */})
-			})
-			.then((finalOutput) => {
-				// Run the tests only if the "Check" button was clicked
-				if (doChecks) {
-					return runTestsAfterCode(finalOutput);
-				}
-			})
-			.catch(printError)
-			.then(() => setRunning(EXEC_STATE.STOPPED));
-	};
+		if (predefinedCode.language) {
+			handleRun(xtermInterface(xterm), LANGUAGES[predefinedCode.language], codeRef?.current?.getCode() || "", predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, sendCheckerResult, alertSetupCodeFail, doChecks)
+				.then(() => setRunning(EXEC_STATE.STOPPED));
+		} else {
+			alertSetupCodeFail("Unknown programming language - unable to run code!");
+		}
+	}
 
 	return <div ref={containerRef}>
-		<Editor initCode={predefinedCode.code} ref={editorRef} updateHeight={updateHeight} />
-		<RunButtons running={running} loaded={loaded} onRun={handleRun(false)} onCheck={handleRun(true)} showCheckButton={!!(predefinedCode.test || predefinedCode.testInputs || predefinedCode.outputRegex)}/>
+		<Editor initCode={predefinedCode.code} ref={codeRef} updateHeight={updateHeight} />
+		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!(predefinedCode.test)}/>
 		<OutputTerminal setXTerm={setXTerm} />
 	</div>
 }

@@ -2,6 +2,74 @@ import React, {useEffect, useRef} from "react";
 import {Terminal} from "xterm";
 import {FitAddon} from "xterm-addon-fit";
 import {WebglAddon} from "xterm-addon-webgl"
+import {ITerminal} from "./types";
+
+/**
+ * Handling a single input character to the xterm terminal - will recurse, building up a string
+ * output, until CRLF is input.
+ */
+const handleSingleInputChar = (xterm: Terminal, input: string) => new Promise<string>((resolve, reject) => {
+	if (undefined === xterm) {
+		return resolve("");
+	}
+
+	const onDataListener = xterm.onData((s: string) => {
+		// This does the recursive call by cleaning up the old listener and handling the next input
+		const cleanUpAndRecurse = (newInput: string) => {
+			onDataListener.dispose();
+			handleSingleInputChar(xterm, newInput).then(resolve).catch(reject);
+		}
+		switch (s) {
+			case '\u0003': // Ctrl+C
+				const xtermSelection = xterm.getSelection();
+				navigator.clipboard.writeText(xtermSelection).then(() => {
+					console.log(`Copied: ${xtermSelection} to clipboard!`);
+				}).catch(() => {
+					console.log("Failed to copy selection to clipboard");
+				}); // Could make this show a "copied to clipboard" popup?
+				cleanUpAndRecurse(input);
+				return;
+			case '\u0016': // Ctrl+V
+				navigator.clipboard.readText().then((s) => {
+					cleanUpAndRecurse(input + s);
+					xterm.write(s);
+				}).catch(() => {
+					cleanUpAndRecurse(input);
+				});
+				onDataListener.dispose();
+				return;
+			case '\r': // Enter
+				onDataListener.dispose();
+				xterm.write("\r\n");
+				resolve(input);
+				return;
+			case '\n': // Enter (don't handle second character generated)
+				return;
+			case '\u007F': // Backspace (DEL)
+				// Do not delete the prompt
+				if (input.length > 0) {
+					xterm.write('\b \b');
+					cleanUpAndRecurse(input.slice(0, -1));
+					return;
+				}
+				break;
+			default: // Print all other characters for demo
+				if (s >= String.fromCharCode(0x20) && s <= String.fromCharCode(0x7B) || s >= '\u00a0') {
+					xterm.write(s);
+					cleanUpAndRecurse(input + s);
+					return;
+				}
+		}
+		cleanUpAndRecurse(input);
+		return;
+	});
+});
+
+export const xtermInterface: (xterm: Terminal) => ITerminal = (xterm: Terminal) => ({
+	input: () => handleSingleInputChar(xterm,""),
+	output: (output: string) => xterm.write(output.replaceAll("\n", "\r\n")),
+	clear: () => xterm?.clear()
+});
 
 var baseTheme = {
 	foreground: '#F8F8F8',
