@@ -1,14 +1,15 @@
 import React, {ForwardedRef, useEffect, useImperativeHandle, useRef, useState} from "react";
 
 import {EditorView, EditorState, basicSetup} from "@codemirror/basic-setup";
-import {python} from "@codemirror/lang-python";
 import {keymap, ViewUpdate} from "@codemirror/view";
 import {indentWithTab} from "@codemirror/commands";
-import {pythonHighlightStyle, pythonTheme} from "./pythonTheme";
+import {ICodeMirrorTheme} from "./types";
+import {THEMES} from "./constants";
+import {pythonCodeMirrorTheme} from "./langages/Python";
 
-interface EditorProps {initCode?: string; updateHeight: (editorLines: number) => void}
+interface EditorProps {initCode?: string; language?: string; updateHeight: (editorLines: number) => void}
 
-export const Editor = React.forwardRef(({initCode, updateHeight}: EditorProps, ref: ForwardedRef<{getCode: () => string | undefined}>) => {
+export const Editor = React.forwardRef(({initCode, language, updateHeight}: EditorProps, ref: ForwardedRef<{getCode: () => string | undefined}>) => {
 
 	const [editor, setEditor] = useState<EditorView | null>(null);
 
@@ -29,14 +30,16 @@ export const Editor = React.forwardRef(({initCode, updateHeight}: EditorProps, r
 			editor.destroy();
 		}
 
+		const codeMirrorTheme: ICodeMirrorTheme = (language ? THEMES.get(language) : undefined) ?? pythonCodeMirrorTheme;
+
 		setEditor(new EditorView({
 			state: EditorState.create({
 				doc: initCode,
 				extensions: [
 					basicSetup,
-					python(),
-					pythonTheme,
-					pythonHighlightStyle,
+					codeMirrorTheme.languageSupport,
+					codeMirrorTheme.theme,
+					codeMirrorTheme.highlightStyle,
 					keymap.of([indentWithTab]), // about accessibility: https://codemirror.net/6/examples/tab/
 					EditorView.updateListener.of((v: ViewUpdate) => {
 						if (v.startState.doc.lines !== v.state.doc.lines) {

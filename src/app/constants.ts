@@ -1,5 +1,6 @@
-import {pythonLanguage} from "./Python";
-import {ILanguage} from "./types";
+import {ICodeMirrorTheme, ILanguage} from "./types";
+import {pythonCodeMirrorTheme, pythonLanguage} from "./langages/Python";
+import {javaScriptCodeMirrorTheme, javaScriptLanguage} from "./langages/JavaScript";
 
 export const UNDEFINED_CHECKER_RESULT = "UNDEFINED_CHECKER_RESULT";
 
@@ -24,5 +25,11 @@ export const EXEC_STATE = {
 }
 
 export const LANGUAGES = new Map<string, ILanguage>([
-    ["python", pythonLanguage]
+    ["python", pythonLanguage],
+    ["javascript", javaScriptLanguage]
+]);
+
+export const THEMES = new Map<string, ICodeMirrorTheme>([
+    ["python", pythonCodeMirrorTheme],
+    ["javascript", javaScriptCodeMirrorTheme]
 ]);

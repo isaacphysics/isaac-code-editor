@@ -1,3 +1,7 @@
+import {LanguageSupport} from "@codemirror/language"
+import {Extension} from '@codemirror/state';
+import {HighlightStyle} from "@codemirror/highlight";
+
 export interface Feedback {
     succeeded: boolean;
     message: string;
@@ -28,5 +32,13 @@ export interface ILanguage {
     runSetupCode: (printOutput: (output: string) => void, handleInput: () => Promise<string>, setupCode?: string, testCallbacks?: TestCallbacks) => Promise<string>,
     runTests: (output: string, handleInput: () => Promise<string>, testCode?: string, testCallbacks?: TestCallbacks) => Promise<string>,
     runCode: (code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>, options: object, testCallbacks?: TestCallbacks) => Promise<string>,
-    wrapInMain: (code: string, doChecks?: boolean) => string
+    wrapInMain: (code: string, doChecks?: boolean) => string,
+    testErrorSubclass: string
+}
+
+
+export interface ICodeMirrorTheme {
+    languageSupport: LanguageSupport,
+    theme: Extension,
+    highlightStyle: HighlightStyle
 }

@@ -24,7 +24,7 @@ const handleRun = (terminal: ITerminal,
 	const printError = ({error, isTestError}: {error: string, isTestError?: boolean}) => {
 		printFeedback({
 			succeeded: false,
-			message: (error?.replace(/ on line \d+/, "") ?? "Undefined error (sorry, this particular code snippet may be broken)"),
+			message: (isTestError ? error?.replace(/ on line \d+/, "") : error) ?? "Undefined error (sorry, this particular code snippet may be broken)",
 			isTest: isTestError
 		});
 		if (isTestError === true) {
@@ -177,7 +177,7 @@ export const Sandbox = () => {
 		 */
 		if (receivedData.type === MESSAGE_TYPES.INITIALISE) {
 			const newPredefCode = {
-				setup: "class TestError(Exception):\n\tpass\n" + (tryCastString(receivedData?.setup) ?? ""),
+				setup: tryCastString(receivedData?.setup) ?? "",
 				code: tryCastString(receivedData?.code),
 				wrapCodeInMain: receivedData?.wrapCodeInMain ? receivedData?.wrapCodeInMain as boolean : undefined,
 				test: tryCastString(receivedData?.test),
@@ -214,7 +214,7 @@ export const Sandbox = () => {
 		const language = LANGUAGES.get(predefinedCode?.language ?? "");
 		if (language) {
 			setRunning(doChecks ? EXEC_STATE.CHECKING : EXEC_STATE.RUNNING);
-			handleRun(xtermInterface(xterm), language, codeRef?.current?.getCode() || "", predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, sendCheckerResult, alertSetupCodeFail, doChecks)
+			handleRun(xtermInterface(xterm), language, codeRef?.current?.getCode() || "", language.testErrorSubclass + "\n" + predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, sendCheckerResult, alertSetupCodeFail, doChecks)
 				.then(() => setRunning(EXEC_STATE.STOPPED));
 		} else {
 			alertSetupCodeFail("Unknown programming language - unable to run code!");
@@ -222,7 +222,7 @@ export const Sandbox = () => {
 	}
 
 	return <div ref={containerRef}>
-		<Editor initCode={predefinedCode.code} ref={codeRef} updateHeight={updateHeight} />
+		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} />
 		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!(predefinedCode.test)}/>
 		<OutputTerminal setXTerm={setXTerm} />
 	</div>
