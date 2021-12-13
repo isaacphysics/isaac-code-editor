@@ -6,6 +6,7 @@ import {ICodeMirrorTheme, ILanguage, TestCallbacks} from "../types";
 import {EditorView} from "@codemirror/basic-setup";
 import {tags, HighlightStyle} from "@codemirror/highlight";
 import {python} from "@codemirror/lang-python";
+import {endTestTemplate, startTestTemplate} from "./common";
 
 // Transpile and run a snippet of python code
 const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>, skulptOptions= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
@@ -14,76 +15,65 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 	let outputSinceLastTest = "";
 
 	function startTest(inputs: any, regex: any) {
-		if (undefined === testCallbacks) {
-			throw new Sk.builtin.NameError("name 'startTest' is not defined - nice try!");
-		}
-
-		if (arguments.length !== 2 && arguments.length !== 0) {
-			throw {error: "startTest takes two arguments, a list of input strings and a regex string - either can also be set to None"};
-		}
-
-		if (arguments.length === 0) {
-			testCallbacks.setTestInputs(undefined);
-			testCallbacks.setTestRegex(undefined);
-			return;
-		}
-
-		if (inputs instanceof Sk.builtin.list || inputs instanceof Sk.builtin.tuple) {
-			testCallbacks.setTestInputs(Sk.ffi.remapToJs(inputs));
-		} else if (!Sk.builtin.checkNone(inputs)) {
-			throw {error: "Test inputs must be a list-like object or None"};
-		} else {
-			testCallbacks.setTestInputs(undefined);
-		}
-		if (Sk.builtin.checkString(regex)) {
-			testCallbacks.setTestRegex(Sk.ffi.remapToJs(regex));
-		} else if (!Sk.builtin.checkNone(regex)) {
-			throw {error: "Regex must be a string or None"};
-		} else {
-			testCallbacks.setTestRegex(undefined);
-		}
+		startTestTemplate(inputs, regex, arguments.length,
+			(is) => {
+				if (is instanceof Sk.builtin.list || is instanceof Sk.builtin.tuple) {
+					return Sk.ffi.remapToJs(is);
+				} else if (Sk.builtin.checkNone(is)) {
+					return undefined;
+				} else {
+					throw {error: "Test inputs must be a list-like object or None"};
+				}
+			}, (re) => {
+				if (Sk.builtin.checkString(re)) {
+					return Sk.ffi.remapToJs(re);
+				} else if (Sk.builtin.checkNone(re)) {
+					return undefined;
+				} else {
+					throw {error: "Regex must be a string or None"};
+				}
+			}, () => {
+				throw new Sk.builtin.NameError("name 'startTest' is not defined - nice try!");
+			}, () => {
+				throw {error: "startTest takes two arguments, a list of input strings and a regex string - either can also be set to None"}
+			}, testCallbacks);
 	}
 
-	function endTest(testSuccess: string, testFail: string, allInputsMustBeUsed: boolean) {
-		if (undefined === testCallbacks) {
-			throw new Sk.builtin.NameError("name 'endTest' is not defined - nice try!");
-		}
-
-		let successMessage = undefined;
-		let failMessage = undefined;
-		let useAllInputs = true;
-
-		if (arguments.length !== 3 && arguments.length !== 2 && arguments.length !== 0) {
-			throw {error: "endTest takes three arguments. These are two message strings - one to show on test pass and " +
-					"one to show on test fail, and the third is a boolean deciding whether all test inputs given need to " +
-					"be used or not. The first two arguments can also be set to None."};
-		}
-		if (undefined !== testSuccess) {
-			if (Sk.builtin.checkString(testSuccess)) {
-				successMessage = Sk.ffi.remapToJs(testSuccess);
-			} else if (!Sk.builtin.checkNone(testSuccess)) {
-				throw {error: "'Test success' feedback must be a string or None"};
-			}
-		}
-		if (undefined !== testFail) {
-			if (Sk.builtin.checkString(testFail)) {
-				failMessage = Sk.ffi.remapToJs(testFail);
-			} else if (!Sk.builtin.checkNone(testFail)) {
-				throw {error: "'Test failed' feedback must be a string or None"};
-			}
-		}
-		if (undefined !== allInputsMustBeUsed) {
-			if (Sk.builtin.checkBool(allInputsMustBeUsed)) {
-				useAllInputs = Sk.ffi.remapToJs(allInputsMustBeUsed);
-			} else {
-				throw {error: "'allInputsMustBeUsed' must be a boolean"};
-			}
-		}
-		testCallbacks.runCurrentTest(outputSinceLastTest, useAllInputs, successMessage, failMessage)
-			.then(() => {
-				outputSinceLastTest = ""
-			})
-			.catch(reject);
+	function endTest(testSuccess: any, testFail: any, allInputsMustBeUsed: any) {
+		endTestTemplate(testSuccess, testFail, allInputsMustBeUsed, arguments.length,
+			(message) => {
+				if (Sk.builtin.checkString(message)) {
+					return Sk.ffi.remapToJs(message);
+				} else if (Sk.builtin.checkNone(message)) {
+					return undefined;
+				} else {
+					throw {error: "'Test success' feedback must be a string or None"};
+				}
+			},(message) => {
+				if (Sk.builtin.checkString(message)) {
+					return Sk.ffi.remapToJs(message);
+				} else if (Sk.builtin.checkNone(message)) {
+					return undefined;
+				} else {
+					throw {error: "'Test failed' feedback must be a string or None"};
+				}
+			}, (uai) => {
+				if (Sk.builtin.checkBool(uai)) {
+					return Sk.ffi.remapToJs(uai);
+				} else if (Sk.builtin.checkNone(uai)) {
+					return undefined;
+				} else {
+					throw {error: "'allInputsMustBeUsed' must be a boolean or None"};
+				}
+			}, () => {
+				throw new Sk.builtin.NameError("name 'endTest' is not defined - nice try!");
+			}, () => {
+				throw {error: "endTest takes three arguments. These are two message strings - one to show on test pass and " +
+						"one to show on test fail, and the third is a boolean deciding whether all test inputs given need to " +
+						"be used or not. The first two arguments can also be set to None."};
+			}, outputSinceLastTest, testCallbacks);
+		// If the test fails, an error is thrown. Otherwise, we need to clear outputSinceLastTest
+		outputSinceLastTest = "";
 	}
 
 	function builtinRead(x: string) {

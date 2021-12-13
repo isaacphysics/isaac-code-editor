@@ -62,35 +62,34 @@ const handleRun = (terminal: ITerminal,
 			outputRegex = re ? RegExp(re) : undefined;
 		},
 		runCurrentTest: (currentOutput: string, allInputsMustBeUsed: boolean, successMessage: string | undefined, failMessage: string | undefined) => {
-			return new Promise((resolve, reject) => {
-				// Check output matches regex given
-				if (outputRegex) {
-					if (!outputRegex.test(currentOutput)) {
-						// If the output does not match the provided regex
-						reject({error: failMessage ?? "Your program produced unexpected output...", isTestError: true});
-					} else if (undefined === successMessage) {
-						printFeedback({succeeded: true, message: "The output of your program looks good", isTest: true});
-					}
+			if (outputRegex) {
+				if (!outputRegex.test(currentOutput)) {
+					// If the output does not match the provided regex
+					return {error: failMessage ?? "Your program produced unexpected output...", isTestError: true};
+				} else if (undefined === successMessage) {
+					printFeedback({succeeded: true, message: "The output of your program looks good", isTest: true});
 				}
-				// Check whether all inputs were used (if needed)
-				if (allInputsMustBeUsed) {
-					if (inputCount > 0) {
-						// If the number of inputs used was not exactly the number provided, and the user had to use all available
-						//  test inputs, then this is an error
-						reject({error: failMessage ?? "Your program didn't call input() enough times...", isTestError: true});
-					} else if (inputCount < 0) {
-						reject({error: failMessage ?? "Your program called input() too many times...", isTestError: true});
-					} else if (undefined === successMessage) {
-						printFeedback({succeeded: true, message: "Your program accepted the correct number of inputs", isTest: true});
-					}
+			}
+			// Check whether all inputs were used (if needed)
+			if (allInputsMustBeUsed) {
+				console.log(inputCount);
+				if (inputCount > 0) {
+					// If the number of inputs used was not exactly the number provided, and the user had to use all available
+					//  test inputs, then this is an error
+					return {error: failMessage ?? "Your program didn't call input() enough times...", isTestError: true};
+				} else if (inputCount < 0) {
+					return {error: failMessage ?? "Your program called input() too many times...", isTestError: true};
+				} else if (undefined === successMessage) {
+					printFeedback({succeeded: true, message: "Your program accepted the correct number of inputs", isTest: true});
 				}
-				if (successMessage) {
-					printFeedback({succeeded: true, message: successMessage, isTest: true});
-				} else if (!allInputsMustBeUsed && (undefined === outputRegex)) {
-					printFeedback({succeeded: true, message: "Test passed", isTest: true});
-				}
-				resolve();
-			});
+			}
+
+			if (successMessage) {
+				printFeedback({succeeded: true, message: successMessage, isTest: true});
+			} else if (!allInputsMustBeUsed && (undefined === outputRegex)) {
+				printFeedback({succeeded: true, message: "Test passed", isTest: true});
+			}
+			return undefined;
 		}
 	}
 

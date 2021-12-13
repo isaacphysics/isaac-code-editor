@@ -5,6 +5,7 @@ import {EditorView} from "@codemirror/basic-setup";
 import {tags, HighlightStyle} from "@codemirror/highlight";
 import {javascript} from "@codemirror/lang-javascript";
 import {Parser} from "acorn";
+import {endTestTemplate, startTestTemplate} from "./common";
 
 let checkerResult: string | undefined = undefined;
 
@@ -15,65 +16,55 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
     let outputSinceLastTest = "";
 
     function startTest(inputs: any, regex: any) {
-        console.log("IN START TEST")
-        if (undefined === testCallbacks) {
-            throw {error: "name 'startTest' is not defined - nice try!"};
-        }
-        if (arguments.length !== 2) {
-            throw {error: "startTest takes two arguments, a list of input strings and a regex string - either can also be set to None"};
-        }
-        if (Array.isArray(inputs)) {
-            testCallbacks.setTestInputs(inputs);
-        } else if (inputs !== undefined) {
-            throw {error: "Test inputs must be a list or undefined"};
-        } else {
-            testCallbacks.setTestInputs(undefined);
-        }
-        if (typeof regex === "string") {
-            testCallbacks.setTestRegex(regex);
-        } else if (regex !== undefined) {
-            throw {error: "Regex must be a string or None"};
-        } else {
-            testCallbacks.setTestRegex(undefined);
-        }
+        startTestTemplate(inputs, regex, arguments.length,
+            (is) => {
+                if (Array.isArray(is) || undefined === is) {
+                    return is;
+                } else {
+                    throw {error: "Test inputs must be a list or undefined"};
+                }
+            }, (re) => {
+                if (typeof re === "string" || undefined === re) {
+                    return re;
+                } else {
+                    throw {error: "Regex must be a string or undefined"};
+                }
+            }, () => {
+                throw {error: "name 'startTest' is not defined - nice try!"};
+            }, () => {
+                throw {error: "startTest takes two arguments, a list of input strings and a regex string - either can also be set to undefined"}
+            }, testCallbacks);
     }
 
     function endTest(testSuccess: any, testFail: any, allInputsMustBeUsed: any) {
-        console.log("IN END TEST")
-        if (undefined === testCallbacks) {
-            throw {error: "name 'endTest' is not defined - nice try!"};
-        }
-
-        let successMessage = undefined;
-        let failMessage = undefined;
-        let useAllInputs = true;
-
-        if (arguments.length !== 3) {
-            throw {error: "endTest takes three arguments. These are two message strings - one to show on test pass and " +
-                    "one to show on test fail, and the third is a boolean deciding whether all test inputs given need to " +
-                    "be used or not. The first two arguments can also be set to undefined."};
-        }
-        if (typeof testSuccess === "string") {
-            successMessage = testSuccess;
-        } else if (testSuccess !== undefined) {
-            throw {error: "'Test success' feedback must be a string or undefined"};
-        }
-        if (typeof testFail === "string") {
-            failMessage = testFail;
-        } else if (testFail !== undefined) {
-            throw {error: "'Test failed' feedback must be a string or undefined"};
-        }
-        if (typeof allInputsMustBeUsed === "boolean") {
-            useAllInputs = allInputsMustBeUsed;
-        } else {
-            throw {error: "'allInputsMustBeUsed' must be a boolean"};
-        }
-
-        testCallbacks.runCurrentTest(outputSinceLastTest, useAllInputs, successMessage, failMessage)
-            .then(() => {
-                outputSinceLastTest = ""
-            })
-            .catch(reject);
+        endTestTemplate(testSuccess, testFail, allInputsMustBeUsed, arguments.length,
+            (message) => {
+                if (typeof message === "string" || undefined === message) {
+                    return message;
+                } else {
+                    throw {error: "'Test success' feedback must be a string or undefined"};
+                }
+            },(message) => {
+                if (typeof message === "string" || undefined === message) {
+                    return message;
+                } else {
+                    throw {error: "'Test failed' feedback must be a string or undefined"};
+                }
+            }, (uai) => {
+                if (typeof uai === "boolean" || undefined === uai) {
+                    return uai;
+                } else {
+                    throw {error: "'allInputsMustBeUsed' must be a boolean or undefined"};
+                }
+            }, () => {
+                throw {error: "name 'endTest' is not defined - nice try!"};
+            }, () => {
+                throw {error: "endTest takes three arguments. These are two message strings - one to show on test pass and " +
+                        "one to show on test fail, and the third is a boolean deciding whether all test inputs given need to " +
+                        "be used or not. The first two arguments can also be set to undefined."};
+            }, outputSinceLastTest, testCallbacks);
+        // If the test fails, an error is thrown. Otherwise, we need to clear outputSinceLastTest
+        outputSinceLastTest = "";
     }
 
     // function prompt(text: any, defaultInput?: any): string {
@@ -150,7 +141,7 @@ export const javaScriptLanguage: ILanguage = {
         "  constructor(message) {\n" +
         "    super(message);\n" +
         "  }\n" +
-        "}"
+        "}\n"
 }
 
 // --- JavaScript theme ---

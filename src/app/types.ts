@@ -25,7 +25,7 @@ export interface ITerminal {
 export interface TestCallbacks {
     setTestInputs: (inputs?: string[]) => void;
     setTestRegex: (re?: string) => void;
-    runCurrentTest: (currentOutput: string, allInputsMustBeUsed: boolean, successMessage?: string, failMessage?: string) => Promise<void>;
+    runCurrentTest: (currentOutput: string, allInputsMustBeUsed: boolean, successMessage?: string, failMessage?: string) => {error: string, isTestError: boolean} | undefined;
 }
 
 export interface ILanguage {
