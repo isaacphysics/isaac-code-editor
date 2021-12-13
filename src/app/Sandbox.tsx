@@ -72,7 +72,6 @@ const handleRun = (terminal: ITerminal,
 			}
 			// Check whether all inputs were used (if needed)
 			if (allInputsMustBeUsed) {
-				console.log(inputCount);
 				if (inputCount > 0) {
 					// If the number of inputs used was not exactly the number provided, and the user had to use all available
 					//  test inputs, then this is an error

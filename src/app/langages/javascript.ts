@@ -100,9 +100,9 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
     //     outputSinceLastTest += message;
     // }
 
-    const parsedCode = Parser.parse(code, {ecmaVersion: 2020});
+    //const parsedCode = Parser.parse(code, {ecmaVersion: 2020});
 
-    console.log(parsedCode);
+    //console.log(parsedCode);
 
     eval(code);
 
