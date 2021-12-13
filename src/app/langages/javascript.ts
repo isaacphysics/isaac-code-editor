@@ -7,6 +7,11 @@ import {javascript} from "@codemirror/lang-javascript";
 import {Parser} from "acorn";
 import {endTestTemplate, startTestTemplate} from "./common";
 
+
+/**
+ * JAVASCRIPT SUPPORT IS CURRENTLY IN BETA - it can be run, but can't be checked
+ */
+
 let checkerResult: string | undefined = undefined;
 
 // Run a snippet of javascript code
