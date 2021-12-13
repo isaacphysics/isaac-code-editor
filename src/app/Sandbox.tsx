@@ -7,7 +7,7 @@ import {Terminal} from "xterm";
 import {EXEC_STATE, LANGUAGES, MESSAGE_TYPES} from "./constants";
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage} from "./types";
 
-const terminalInitialText = "Isaac Python - running Skulpt in xterm.js:\n";
+const terminalInitialText = "Isaac Code Editor - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
 
 const handleRun = (terminal: ITerminal,
