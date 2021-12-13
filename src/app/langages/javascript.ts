@@ -104,9 +104,12 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 
     //console.log(parsedCode);
 
-    eval(code);
-
-    resolve(finalOutput);
+    if (testCallbacks) {
+        reject({error: "JavaScript testing is not implemented yet, sorry!"})
+    } else {
+        eval(code);
+        resolve(finalOutput);
+    }
 
     // return
     //     .then(() => {
