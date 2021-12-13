@@ -2,7 +2,7 @@
 import Sk from "skulpt"
 import {noop} from "../services/utils";
 import {ERRORS, UNDEFINED_CHECKER_RESULT} from "../constants";
-import {ICodeMirrorTheme, ILanguage, TestCallbacks} from "../types";
+import {CodeMirrorTheme, ILanguage, TestCallbacks} from "../types";
 import {EditorView} from "@codemirror/basic-setup";
 import {tags, HighlightStyle} from "@codemirror/highlight";
 import {python} from "@codemirror/lang-python";
@@ -154,7 +154,9 @@ export const pythonLanguage: ILanguage = {
 	runSetupCode: runSetupCode,
 	runTests: runTests,
 	wrapInMain: (code, doChecks) => "def main():\n" + code.split("\n").map(s => "\t" + s).join("\n") + (!doChecks ? "\nmain()\n" : ""),
-	testErrorSubclass: "class TestError(Exception):\n\tpass\n"
+	testErrorSubclass:
+		"class TestError(Exception):\n" +
+		"  pass\n"
 }
 
 // --- Python theme ---
@@ -183,7 +185,7 @@ export const pythonHighlightStyle = HighlightStyle.define([
 	{tag: tags.string, color: "#008000"},
 ]);
 
-export const pythonCodeMirrorTheme: ICodeMirrorTheme = {
+export const pythonCodeMirrorTheme: CodeMirrorTheme = {
 	languageSupport: python(),
 	theme: pythonTheme,
 	highlightStyle: pythonHighlightStyle

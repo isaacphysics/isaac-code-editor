@@ -1,6 +1,6 @@
 import {noop} from "../services/utils";
 import {UNDEFINED_CHECKER_RESULT} from "../constants";
-import {ICodeMirrorTheme, ILanguage, TestCallbacks} from "../types";
+import {CodeMirrorTheme, ILanguage, TestCallbacks} from "../types";
 import {EditorView} from "@codemirror/basic-setup";
 import {tags, HighlightStyle} from "@codemirror/highlight";
 import {javascript} from "@codemirror/lang-javascript";
@@ -170,7 +170,7 @@ export const javaScriptHighlightStyle = HighlightStyle.define([
     {tag: tags.string, color: "#008000"},
 ]);
 
-export const javaScriptCodeMirrorTheme: ICodeMirrorTheme = {
+export const javaScriptCodeMirrorTheme: CodeMirrorTheme = {
     languageSupport: javascript(),
     theme: javaScriptTheme,
     highlightStyle: javaScriptHighlightStyle

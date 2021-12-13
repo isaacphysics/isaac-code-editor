@@ -72,34 +72,6 @@ export function isDefined<T>(value: T | undefined | null): value is T {
     return (value as T) !== undefined && (value as T) !== null;
 }
 
-// export const useFocused = (refObject?: RefObject<HTMLElement>) => {
-//
-//     const [isFocused, setIsFocused] = useState<boolean>(false);
-//
-//     useEffect(() => {
-//         if (!isDefined(refObject) || !isDefined(refObject.current)) return;
-//
-//         const refObjectCopy = refObject?.current;
-//
-//         const onFocusIn = () => {
-//             console.log("Focusing");
-//             setIsFocused(true);
-//         }
-//
-//         const onFocusOut = () => { setIsFocused(false); }
-//
-//         refObject.current.addEventListener("focusin", onFocusIn);
-//         refObject.current.addEventListener("focusout", onFocusOut);
-//
-//         return () => {
-//             refObjectCopy.removeEventListener("focusin", onFocusIn);
-//             refObjectCopy.removeEventListener("focusout", onFocusOut);
-//         }
-//     }, [refObject]);
-//
-//     return isFocused;
-// }
-
 export const useTick = (interval: number) => {
     const intervalRef = useRef(interval);
     const [clockOn, setClockOn] = useState<boolean>(false);

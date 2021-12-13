@@ -36,8 +36,7 @@ export interface ILanguage {
     testErrorSubclass: string
 }
 
-
-export interface ICodeMirrorTheme {
+export interface CodeMirrorTheme {
     languageSupport: LanguageSupport,
     theme: Extension,
     highlightStyle: HighlightStyle

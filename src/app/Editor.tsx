@@ -3,9 +3,9 @@ import React, {ForwardedRef, useEffect, useImperativeHandle, useRef, useState} f
 import {EditorView, EditorState, basicSetup} from "@codemirror/basic-setup";
 import {keymap, ViewUpdate} from "@codemirror/view";
 import {indentWithTab} from "@codemirror/commands";
-import {ICodeMirrorTheme} from "./types";
+import {CodeMirrorTheme} from "./types";
 import {THEMES} from "./constants";
-import {pythonCodeMirrorTheme} from "./langages/Python";
+import {pythonCodeMirrorTheme} from "./langages/python";
 
 interface EditorProps {initCode?: string; language?: string; updateHeight: (editorLines: number) => void}
 
@@ -30,7 +30,7 @@ export const Editor = React.forwardRef(({initCode, language, updateHeight}: Edit
 			editor.destroy();
 		}
 
-		const codeMirrorTheme: ICodeMirrorTheme = (language ? THEMES.get(language) : undefined) ?? pythonCodeMirrorTheme;
+		const codeMirrorTheme: CodeMirrorTheme = (language ? THEMES.get(language) : undefined) ?? pythonCodeMirrorTheme;
 
 		setEditor(new EditorView({
 			state: EditorState.create({
