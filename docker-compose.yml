@@ -1,0 +1,11 @@
+version: "2"
+services:
+  editor:
+    build:
+      context: .
+    container_name: isaac-code-editor
+    restart: always
+networks:
+  default:
+    external:
+      name: isaac
