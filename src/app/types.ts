@@ -36,6 +36,12 @@ export interface ILanguage {
     testErrorSubclass: string
 }
 
+export interface IFileSystem {
+    read: (s: string) => string,
+    write: (s: string, append: boolean) => void,
+    clear: () => void
+}
+
 export interface CodeMirrorTheme {
     languageSupport: LanguageSupport,
     theme: Extension,
