@@ -111,7 +111,6 @@ export const OutputTerminal = ({setXTerm}: OutputTerminalProps) => {
 		setXTerm(newTerm);
 		newTerm.open(xtermDiv.current);
 
-		/*
 		let isWebglEnabled = false;
 		try {
 			newTerm.loadAddon(new WebglAddon());
@@ -119,7 +118,6 @@ export const OutputTerminal = ({setXTerm}: OutputTerminalProps) => {
 		} catch (e) {
 			console.warn("WebGL addon threw an exception during load", e);
 		}
-		*/
 
 		const fitAddon = new FitAddon();
 		newTerm.loadAddon(fitAddon);
