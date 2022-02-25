@@ -4,8 +4,9 @@ import {OutputTerminal, xtermInterface} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {noop, tryCastString, useIFrameMessages} from "./services/utils";
 import {Terminal} from "xterm";
-import {EXEC_STATE, LANGUAGES, MESSAGE_TYPES} from "./constants";
+import {DEMO_CODE, EXEC_STATE, IN_IFRAME, LANGUAGES, MESSAGE_TYPES} from "./constants";
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage} from "./types";
+import classNames from "classnames";
 
 const terminalInitialText = "Isaac Code Editor - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
@@ -132,13 +133,15 @@ const buttonHeightAndYMargin = 50 + 16;
 const terminalHeight = 200;
 const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + buttonHeightAndYMargin + terminalHeight;
 
+
+
 export const Sandbox = () => {
-	const [loaded, setLoaded] = useState<boolean>(false);
+	const [loaded, setLoaded] = useState<boolean>(!IN_IFRAME);
 	const [running, setRunning] = useState<string>(EXEC_STATE.STOPPED);
 
-	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>({
+	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>(IN_IFRAME ? {
 		code: "# Loading..."
-	});
+	} : DEMO_CODE);
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
@@ -154,7 +157,7 @@ export const Sandbox = () => {
 			});
 		}
 	}, [containerRef, sendMessage]);
-	
+
 	useEffect(() => {
 		if (undefined === receivedData) return;
 		/** The editor can receive two types of messages
@@ -219,7 +222,18 @@ export const Sandbox = () => {
 		}
 	}
 
-	return <div ref={containerRef}>
+	return <div ref={containerRef} className={classNames({"m-5": !IN_IFRAME})}>
+		{!IN_IFRAME && <>
+			<h2>
+				Isaac Code Editor Demo
+			</h2>
+			<p>
+				Below is a Python implementation of the bubble sort algorithm! It is an example of <b>indefinite</b> and <b>nested</b> iteration. Interact with the code to understand how it works.
+			</p>
+			<p>
+				If you modify the code, you can press the test button to see if it still sorts lists correctly.
+			</p>
+		</>}
 		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} />
 		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!(predefinedCode.test)}/>
 		<OutputTerminal setXTerm={setXTerm} />

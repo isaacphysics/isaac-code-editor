@@ -5,17 +5,12 @@ export function startTestTemplate(inputs: any, regex: any, args: number, validat
         throwNameError();
         return; // to appease TS - the above function will throw an error everytime however
     }
-    if (args !== 2 && args !== 0) {
+    if (0 > args || args > 2) {
         throwArgError();
         return;
     }
-    if (args === 0) {
-        testCallbacks.setTestInputs(undefined);
-        testCallbacks.setTestRegex(undefined);
-        return;
-    }
-    testCallbacks.setTestInputs(validateInputs(inputs));
-    testCallbacks.setTestRegex(validateRegex(regex));
+    testCallbacks.setTestInputs(args < 1 ? undefined : validateInputs(inputs));
+    testCallbacks.setTestRegex(args < 2 ?undefined : validateRegex(regex));
 }
 
 export function endTestTemplate(testSuccess: any, testFail: any, allInputsMustBeUsed: any, args: number, validateSuccessMessage: (message: any) => string | undefined, validateFailMessage: (message: any) => string | undefined, validateUseAllInputs: (bool: any) => boolean | undefined, throwNameError: () => void, throwArgError: () => void, outputSinceLastTest: string, testCallbacks?: TestCallbacks) {
@@ -23,15 +18,13 @@ export function endTestTemplate(testSuccess: any, testFail: any, allInputsMustBe
         throwNameError();
         return; // to appease TS - the above function will throw an error everytime however
     }
-
-    if (args !== 3 && args !== 2 && args !== 0) {
+    if (0 > args || args > 3) {
         throwArgError();
         return;
     }
-
-    let successMessage = validateSuccessMessage(testSuccess);
-    let failMessage = validateFailMessage(testFail);
-    let useAllInputs = validateUseAllInputs(allInputsMustBeUsed) ?? true;
+    let successMessage = args < 1 ? "Test succeeded" : validateSuccessMessage(testSuccess);
+    let failMessage = args < 2 ? "Test failed" : validateFailMessage(testFail);
+    let useAllInputs = args < 3 ? true : validateUseAllInputs(allInputsMustBeUsed) ?? true;
 
     // Run test
     const error = testCallbacks.runCurrentTest(outputSinceLastTest, useAllInputs, successMessage, failMessage);
