@@ -143,7 +143,6 @@ export const OutputTerminal = ({setXTerm}: OutputTerminalProps) => {
 		});
 
 		return () => {
-			console.log("disposing...");
 			newTerm.dispose();
 			window.removeEventListener("resize", fit);
 			xtermDiv?.current?.removeEventListener("wheel", stopScrollProp);
