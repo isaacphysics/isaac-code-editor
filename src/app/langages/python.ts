@@ -107,6 +107,7 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 		read: builtinRead,
 		killableWhile: true,
 		killableFor: true,
+		__future__: Sk.python3,
 		...skulptOptions
 	});
 	return Sk.misceval.asyncToPromise(
@@ -154,9 +155,11 @@ export const pythonLanguage: ILanguage = {
 	runSetupCode: runSetupCode,
 	runTests: runTests,
 	wrapInMain: (code, doChecks) => "def main():\n" + code.split("\n").map(s => "\t" + s).join("\n") + (!doChecks ? "\nmain()\n" : ""),
-	testErrorSubclass:
-		"class TestError(Exception):\n" +
-		"  pass\n"
+	testingLibrary: `
+		class TestError(Exception):
+		  pass
+  		`,
+	requiresBundledCode: false
 }
 
 // --- Python theme ---

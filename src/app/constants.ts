@@ -43,7 +43,8 @@ export const IN_IFRAME = (() => {
 })();
 
 // Demo code to show if editor is accessed directly (i.e. not from within an iframe)
-export const DEMO_CODE: PredefinedCode = {
+export const DEMO_CODE_PYTHON: PredefinedCode = {
+    language: "python",
     setup: "",
     code:
         "def bubble_sort(list_of_numbers):\n" +
@@ -59,5 +60,25 @@ export const DEMO_CODE: PredefinedCode = {
         "print(\"Sorted list: \" + str(sorted_list))",
     wrapCodeInMain: false,
     test: "startTest()\nif not (bubble_sort([5, 1, 8, 5, 9, 10, 2, 1]) == [1, 1, 2, 5, 5, 8, 9, 10]):\n\traise TestError(\"The 'bubble_sort' function is broken!\")\nendTest()",
-    language: "python",
+}
+export const DEMO_CODE_JS: PredefinedCode = {
+    language: "javascript",
+    setup: "",
+    code: "function bubbleSort(listOfNumbers) {\n" +
+          "  for (let end = listOfNumbers.length - 1; end >= 1; end--) {\n" +
+          "    for (let j = 0; j < end; j++) {\n" +
+          "      if (listOfNumbers[j] > listOfNumbers[j + 1]) {\n" +
+          "        let temp = listOfNumbers[j];\n" +
+          "        listOfNumbers[j] = listOfNumbers[j + 1];\n" +
+          "        listOfNumbers[j + 1] = temp;\n" +
+          "      }\n" +
+          "    }\n" +
+          "  }\n" +
+          "  return listOfNumbers;\n" +
+          "}" +
+          "\n" +
+          "const sortedList = bubbleSort([5, 1, 8, 5, 9, 10, 2, 1])\n" +
+          "alert(\"Sorted list: \" + sortedList.toString())",
+    wrapCodeInMain: false,
+    test: "startTest()\nif (!arraysEqual(bubbleSort([5, 1, 8, 5, 9, 10, 2, 1]), [1, 1, 2, 5, 5, 8, 9, 10])) {\n\tthrow new TestError(\"The 'bubbleSort' function is broken!\")\n}\nendTest()",
 }

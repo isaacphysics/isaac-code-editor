@@ -4,7 +4,7 @@ import {OutputTerminal, xtermInterface} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {noop, tryCastString, useIFrameMessages} from "./services/utils";
 import {Terminal} from "xterm";
-import {DEMO_CODE, EXEC_STATE, IN_IFRAME, LANGUAGES, MESSAGE_TYPES} from "./constants";
+import {DEMO_CODE_PYTHON, DEMO_CODE_JS, EXEC_STATE, IN_IFRAME, LANGUAGES, MESSAGE_TYPES} from "./constants";
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage} from "./types";
 import classNames from "classnames";
 
@@ -22,17 +22,20 @@ const handleRun = (terminal: ITerminal,
 				   onSetupFail: (error: string) => void,
 				   doChecks: boolean | undefined) => {
 
-	const printError = ({error, isTestError}: {error: string, isTestError?: boolean}) => {
+	// TODO handle when the errors throw are errors in code that content have written - they should be sent to the front-end
+	const printError = ({error, isTestError, isContentError}: {error: string, isTestError?: boolean, isContentError?: boolean}) => {
 		printFeedback({
 			succeeded: false,
 			message: (isTestError ? error?.replace(/ on line \d+/, "") : error) ?? "Undefined error (sorry, this particular code snippet may be broken)",
 			isTest: isTestError
 		});
-		if (isTestError === true) {
+		if (isTestError) {
 			printFeedback({
 				succeeded: false,
 				message: "Your code failed at least one test!"
 			});
+		} else if (isContentError) {
+			onSetupFail(error);
 		}
 	}
 
@@ -44,7 +47,7 @@ const handleRun = (terminal: ITerminal,
 	// Every time "input()" is called, the first element of the test inputs is given as
 	//  the user input, and that element is removed from the list. If no test input is
 	//  available, the last one is 'replayed'
-	const testInputHandler = () => new Promise<string>((resolve, reject) => {
+	const asyncTestInputHandler = () => new Promise<string>((resolve, reject) => {
 		inputCount -= 1;
 		if (reversedInputs.length === 0) {
 			reject({error: "Your program asked for input when none was expected, so we couldn't give it a valid input...", isTestError: true});
@@ -53,6 +56,16 @@ const handleRun = (terminal: ITerminal,
 			resolve(reversedInputs.pop());
 		}
 	});
+
+	const syncTestInputHandler = () => {
+		inputCount -= 1;
+		if (reversedInputs.length === 0) {
+			throw {error: "Your program asked for input when none was expected, so we couldn't give it a valid input...", isTestError: true};
+		} else {
+			// @ts-ignore There is definitely an input here
+			return reversedInputs.pop();
+		}
+	};
 
 	const testCallbacks: TestCallbacks = {
 		setTestInputs: (inputs: string[] | undefined) => {
@@ -103,17 +116,22 @@ const handleRun = (terminal: ITerminal,
 		terminal.output("\x1b[1mRunning tests...\r\n");
 	}
 
-	return language.runSetupCode(terminal.output, terminal.input, setupCode, testCallbacks)
+	const bundledSetupCode = language.testingLibrary + "\n" + (setupCode ?? "");
+
+	return language.runSetupCode(terminal.output, terminal.input, bundledSetupCode, testCallbacks)
 		.catch(({error}) => onSetupFail(error))
 		.then(() => {
 			// Wrap code in a 'main' function if specified by the content block
-			let modifiedCode = wrapCodeInMain ? language.wrapInMain(code, doChecks) : code;
-			return language.runCode(modifiedCode, doChecks ? noop : terminal.output, doChecks ? testInputHandler : terminal.input, {retainGlobals: true, execLimit: 2000 /* 2 seconds */})
+			let modifiedCode = (language.requiresBundledCode ? (bundledSetupCode + "\n") : "") + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code);
+			return language.runCode(modifiedCode, doChecks ? noop : terminal.output, doChecks ? asyncTestInputHandler : terminal.input, {retainGlobals: true, execLimit: 2000 /* 2 seconds */})
 		})
 		.then((finalOutput) => {
 			// Run the tests only if the "Check" button was clicked
 			if (doChecks) {
-				return language.runTests(finalOutput, testInputHandler, testCode, testCallbacks)
+				const bundledTestCode = language.requiresBundledCode
+					? bundledSetupCode + "\n" + code + "\n" + testCode
+					: testCode;
+				return language.runTests(finalOutput, asyncTestInputHandler, bundledTestCode, testCallbacks)
 					.then((checkerResult: string) => {
 						onTestFinish(checkerResult);
 					});
@@ -141,7 +159,7 @@ export const Sandbox = () => {
 
 	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>(IN_IFRAME ? {
 		code: "# Loading..."
-	} : DEMO_CODE);
+	} : DEMO_CODE_JS ?? (Math.random() > 0.5 ? DEMO_CODE_PYTHON : DEMO_CODE_JS));
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
@@ -215,7 +233,7 @@ export const Sandbox = () => {
 		const language = LANGUAGES.get(predefinedCode?.language ?? "");
 		if (language) {
 			setRunning(doChecks ? EXEC_STATE.CHECKING : EXEC_STATE.RUNNING);
-			handleRun(xtermInterface(xterm), language, codeRef?.current?.getCode() || "", language.testErrorSubclass + "\n" + predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, sendCheckerResult, alertSetupCodeFail, doChecks)
+			handleRun(xtermInterface(xterm), language, codeRef?.current?.getCode() || "", predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, sendCheckerResult, alertSetupCodeFail, doChecks)
 				.then(() => setRunning(EXEC_STATE.STOPPED));
 		} else {
 			alertSetupCodeFail("Unknown programming language - unable to run code!");
@@ -228,10 +246,10 @@ export const Sandbox = () => {
 				Isaac Code Editor Demo
 			</h2>
 			<p>
-				Below is a Python implementation of the bubble sort algorithm! It is an example of <b>indefinite</b> and <b>nested</b> iteration. Interact with the code to understand how it works.
+				Below is an implementation of the bubble sort algorithm! It is an example of <b>indefinite</b> and <b>nested</b> iteration. Interact with the code to understand how it works.
 			</p>
 			<p>
-				If you modify the code, you can press the test button to see if it still sorts lists correctly.
+				If you modify the code, you can press the test button to see if it still sorts lists correctly (unless it's JavaScript, in which case testing isn't functional yet).
 			</p>
 		</>}
 		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} />

@@ -17,9 +17,9 @@ export interface PredefinedCode {
 }
 
 export interface ITerminal {
-    input: () => Promise<string>,
-    output: (s: string) => void,
-    clear: () => void
+    input: () => Promise<string>;
+    output: (s: string) => void;
+    clear: () => void;
 }
 
 export interface TestCallbacks {
@@ -29,21 +29,22 @@ export interface TestCallbacks {
 }
 
 export interface ILanguage {
-    runSetupCode: (printOutput: (output: string) => void, handleInput: () => Promise<string>, setupCode?: string, testCallbacks?: TestCallbacks) => Promise<string>,
-    runTests: (output: string, handleInput: () => Promise<string>, testCode?: string, testCallbacks?: TestCallbacks) => Promise<string>,
-    runCode: (code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>, options: object, testCallbacks?: TestCallbacks) => Promise<string>,
-    wrapInMain: (code: string, doChecks?: boolean) => string,
-    testErrorSubclass: string
+    runSetupCode: (printOutput: (output: string) => void, handleInput: () => Promise<string>, setupCode?: string, testCallbacks?: TestCallbacks) => Promise<string>;
+    runTests: (output: string, handleInput: () => Promise<string>, testCode?: string, testCallbacks?: TestCallbacks) => Promise<string>;
+    runCode: (code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>, options: object, testCallbacks?: TestCallbacks) => Promise<string>;
+    wrapInMain: (code: string, doChecks?: boolean) => string;
+    testingLibrary: string;
+    requiresBundledCode: boolean;
 }
 
 export interface IFileSystem {
-    read: (s: string) => string,
-    write: (s: string, append: boolean) => void,
-    clear: () => void
+    read: (s: string) => string;
+    write: (s: string, append: boolean) => void;
+    clear: () => void;
 }
 
 export interface CodeMirrorTheme {
-    languageSupport: LanguageSupport,
-    theme: Extension,
-    highlightStyle: HighlightStyle
+    languageSupport: LanguageSupport;
+    theme: Extension;
+    highlightStyle: HighlightStyle;
 }

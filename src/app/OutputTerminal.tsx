@@ -68,7 +68,10 @@ const handleSingleInputChar = (xterm: Terminal, input: string) => new Promise<st
 export const xtermInterface: (xterm: Terminal) => ITerminal = (xterm: Terminal) => ({
 	input: () => handleSingleInputChar(xterm,""),
 	output: (output: string) => xterm.write(output.replaceAll("\n", "\r\n")),
-	clear: () => xterm?.clear()
+	clear: () => {
+		xterm.write('\x1bc');
+		xterm.clear();
+	}
 });
 
 var baseTheme = {
