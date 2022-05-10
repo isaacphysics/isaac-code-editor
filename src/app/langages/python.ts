@@ -6,72 +6,84 @@ import {CodeMirrorTheme, ILanguage, TestCallbacks} from "../types";
 import {EditorView} from "@codemirror/basic-setup";
 import {tags, HighlightStyle} from "@codemirror/highlight";
 import {python} from "@codemirror/lang-python";
-import {endTestTemplate, startTestTemplate} from "./common";
 
 // Transpile and run a snippet of python code
-const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>, skulptOptions= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
+const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), skulptOptions= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
 
 	let finalOutput = "";
 	let outputSinceLastTest = "";
 
 	function startTest(inputs: any, regex: any) {
-		startTestTemplate(inputs, regex, arguments.length,
-			(is) => {
-				if (is instanceof Sk.builtin.list || is instanceof Sk.builtin.tuple) {
-					return Sk.ffi.remapToJs(is);
-				} else if (Sk.builtin.checkNone(is)) {
-					return undefined;
-				} else {
-					throw {error: "Test inputs must be a list-like object or None"};
-				}
-			}, (re) => {
-				if (Sk.builtin.checkString(re)) {
-					return Sk.ffi.remapToJs(re);
-				} else if (Sk.builtin.checkNone(re)) {
-					return undefined;
-				} else {
-					throw {error: "Regex must be a string or None"};
-				}
-			}, () => {
-				throw new Sk.builtin.NameError("name 'startTest' is not defined - nice try!");
-			}, () => {
-				throw {error: "startTest takes two arguments, a list of input strings and a regex string - either can also be set to None"}
-			}, testCallbacks);
+		const args = arguments.length;
+		if (undefined === testCallbacks) {
+			throw new Sk.builtin.NameError("name 'startTest' is not defined - nice try!");
+		}
+		if (0 > args || args > 2) {
+			throw {error: "startTest takes two arguments, a list of input strings and a regex string - either can also be set to None"}
+		}
+		testCallbacks.setTestInputs(args < 1 ? undefined : ((is) => {
+			if (is instanceof Sk.builtin.list || is instanceof Sk.builtin.tuple) {
+				return Sk.ffi.remapToJs(is);
+			} else if (Sk.builtin.checkNone(is)) {
+				return undefined;
+			} else {
+				throw {error: "Test inputs must be a list-like object or None"};
+			}
+		})(inputs));
+		testCallbacks.setTestRegex(args < 2 ? undefined : ((re) => {
+			if (Sk.builtin.checkString(re)) {
+				return Sk.ffi.remapToJs(re);
+			} else if (Sk.builtin.checkNone(re)) {
+				return undefined;
+			} else {
+				throw {error: "Regex must be a string or None"};
+			}
+		})(regex));
 	}
 
 	function endTest(testSuccess: any, testFail: any, allInputsMustBeUsed: any) {
-		endTestTemplate(testSuccess, testFail, allInputsMustBeUsed, arguments.length,
-			(message) => {
-				if (Sk.builtin.checkString(message)) {
-					return Sk.ffi.remapToJs(message);
-				} else if (Sk.builtin.checkNone(message)) {
-					return undefined;
-				} else {
-					throw {error: "'Test success' feedback must be a string or None"};
-				}
-			},(message) => {
-				if (Sk.builtin.checkString(message)) {
-					return Sk.ffi.remapToJs(message);
-				} else if (Sk.builtin.checkNone(message)) {
-					return undefined;
-				} else {
-					throw {error: "'Test failed' feedback must be a string or None"};
-				}
-			}, (uai) => {
-				if (Sk.builtin.checkBool(uai)) {
-					return Sk.ffi.remapToJs(uai);
-				} else if (Sk.builtin.checkNone(uai)) {
-					return undefined;
-				} else {
-					throw {error: "'allInputsMustBeUsed' must be a boolean or None"};
-				}
-			}, () => {
-				throw new Sk.builtin.NameError("name 'endTest' is not defined - nice try!");
-			}, () => {
-				throw {error: "endTest takes three arguments. These are two message strings - one to show on test pass and " +
-						"one to show on test fail, and the third is a boolean deciding whether all test inputs given need to " +
-						"be used or not. The first two arguments can also be set to None."};
-			}, outputSinceLastTest, testCallbacks);
+		const args = arguments.length;
+		if (undefined === testCallbacks) {
+			throw new Sk.builtin.NameError("name 'endTest' is not defined - nice try!");
+		}
+		if (0 > args || args > 3) {
+			throw {error: "endTest takes three arguments. These are two message strings - one to show on test pass and " +
+					"one to show on test fail, and the third is a boolean deciding whether all test inputs given need to " +
+					"be used or not. The first two arguments can also be set to None."};
+		}
+		let successMessage = args < 1 ? undefined : ((message) => {
+			if (Sk.builtin.checkString(message)) {
+				return Sk.ffi.remapToJs(message);
+			} else if (Sk.builtin.checkNone(message)) {
+				return undefined;
+			} else {
+				throw {error: "'Test success' feedback must be a string or None"};
+			}
+		})(testSuccess);
+		let failMessage = args < 2 ? undefined : ((message) => {
+			if (Sk.builtin.checkString(message)) {
+				return Sk.ffi.remapToJs(message);
+			} else if (Sk.builtin.checkNone(message)) {
+				return undefined;
+			} else {
+				throw {error: "'Test failed' feedback must be a string or None"};
+			}
+		})(testFail);
+		let useAllInputs = args < 3 ? undefined : ((uai) => {
+			if (Sk.builtin.checkBool(uai)) {
+				return Sk.ffi.remapToJs(uai);
+			} else if (Sk.builtin.checkNone(uai)) {
+				return undefined;
+			} else {
+				throw {error: "'allInputsMustBeUsed' must be a boolean or None"};
+			}
+		})(allInputsMustBeUsed);
+
+		// Run test
+		const error = testCallbacks.runCurrentTest(outputSinceLastTest, useAllInputs, successMessage, failMessage);
+		if (error) {
+			throw error;
+		}
 		// If the test fails, an error is thrown. Otherwise, we need to clear outputSinceLastTest
 		outputSinceLastTest = "";
 	}
@@ -97,12 +109,17 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 		},
 		inputfun: () => new Promise((resolve, reject) => {
 			const inputStartTime = Date.now();
-			return handleInput().then((input) => {
-				if (Sk.execLimit) {
-					Sk.execLimit = Sk.execLimit + (Date.now() - inputStartTime);
-				}
-				resolve(input);
-			}).catch(reject);
+			const input = handleInput();
+			if (typeof input === "string") {
+				return () => resolve(input);
+			} else {
+				return input.then((input) => {
+					if (Sk.execLimit) {
+						Sk.execLimit = Sk.execLimit + (Date.now() - inputStartTime);
+					}
+					resolve(input);
+				}).catch(reject);
+			}
 		}),
 		read: builtinRead,
 		killableWhile: true,
@@ -131,7 +148,7 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 	});
 });
 
-function runSetupCode(printOutput: (output: string) => void, handleInput: () => Promise<string>, setupCode?: string, testCallbacks?: TestCallbacks) {
+function runSetupCode(printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), setupCode?: string, testCallbacks?: TestCallbacks) {
 	if (setupCode) {
 		return runCode(setupCode, printOutput, handleInput, {retainGlobals: true}, testCallbacks);
 	} else {
@@ -139,7 +156,7 @@ function runSetupCode(printOutput: (output: string) => void, handleInput: () => 
 	}
 }
 
-function runTests(output: string, handleInput: () => Promise<string>, testCode?: string, testCallbacks?: TestCallbacks) {
+function runTests(output: string, handleInput: () => (Promise<string> | string), testCode?: string, testCallbacks?: TestCallbacks) {
 	if (testCode) {
 		return runCode(testCode, noop, handleInput, {retainGlobals: true}, testCallbacks).then((testOutput) => {
 			// Do something with output + testOutput maybe?
@@ -159,7 +176,8 @@ export const pythonLanguage: ILanguage = {
 		class TestError(Exception):
 		  pass
   		`,
-	requiresBundledCode: false
+	requiresBundledCode: false,
+	syncTestInputHander: false,
 }
 
 // --- Python theme ---

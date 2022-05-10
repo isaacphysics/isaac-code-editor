@@ -4,8 +4,6 @@ import {CodeMirrorTheme, ILanguage, TestCallbacks} from "../types";
 import {EditorView} from "@codemirror/basic-setup";
 import {tags, HighlightStyle} from "@codemirror/highlight";
 import {javascript} from "@codemirror/lang-javascript";
-import {endTestTemplate, startTestTemplate} from "./common";
-
 
 /**
  * JAVASCRIPT SUPPORT IS CURRENTLY IN BETA - it can be run, but can't be checked
@@ -14,7 +12,7 @@ import {endTestTemplate, startTestTemplate} from "./common";
 let checkerResult: string | undefined = undefined;
 
 interface FakeWindow {
-    prompt: (prompt: string) => Promise<string>;
+    prompt: (message: string) => string,
     alert: (text: string) => void;
 }
 
@@ -37,81 +35,90 @@ class IsaacError extends Error {
 }
 
 // Run a snippet of javascript code
-const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => Promise<string>, options= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
+const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), options= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
 
     let finalOutput = "";
     let outputSinceLastTest = "";
 
     function startTest(inputs: any, regex: any) {
-        startTestTemplate(inputs, regex, arguments.length,
-            (is) => {
-                if (Array.isArray(is) || undefined === is) {
-                    return is;
-                } else {
-                    throw new IsaacError("Test inputs must be a list or undefined");
-                }
-            }, (re) => {
-                if (typeof re === "string" || undefined === re) {
-                    return re;
-                } else {
-                    throw new IsaacError("Regex must be a string or undefined");
-                }
-            }, () => {
-                throw new IsaacError("name 'startTest' is not defined - nice try!");
-            }, () => {
-                throw new IsaacError("startTest takes two arguments, a list of input strings and a regex string - either can also be set to undefined");
-            }, testCallbacks);
+        const args = arguments.length;
+        if (undefined === testCallbacks) {
+            return; // since the setup code is bundled with the students code, we need to allow this to be run even if not testing
+        }
+        if (0 > args || args > 2) {
+            throw new IsaacError("startTest takes two arguments, a list of input strings and a regex string - either can also be set to undefined");
+        }
+        testCallbacks.setTestInputs(args < 1 ? undefined : ((is) => {
+            if (Array.isArray(is) || undefined === is) {
+                return is;
+            } else {
+                throw new IsaacError("Test inputs must be a list or undefined");
+            }
+        })(inputs));
+        testCallbacks.setTestRegex(args < 2 ? undefined : ((re) => {
+            if (typeof re === "string" || undefined === re) {
+                return re;
+            } else {
+                throw new IsaacError("Regex must be a string or undefined");
+            }
+        })(regex));
     }
 
     function endTest(testSuccess: any, testFail: any, allInputsMustBeUsed: any) {
-        endTestTemplate(testSuccess, testFail, allInputsMustBeUsed, arguments.length,
-            (message) => {
-                if (typeof message === "string" || undefined === message) {
-                    return message;
-                } else {
-                    throw new IsaacError("'Test success' feedback must be a string or undefined");
-                }
-            }, (message) => {
-                if (typeof message === "string" || undefined === message) {
-                    return message;
-                } else {
-                    throw new IsaacError("'Test failed' feedback must be a string or undefined");
-                }
-            }, (uai) => {
-                if (typeof uai === "boolean" || undefined === uai) {
-                    return uai;
-                } else {
-                    throw new IsaacError("'allInputsMustBeUsed' must be a boolean or undefined");
-                }
-            }, () => {
-                throw new Error("name 'endTest' is not defined - nice try!");
-            }, () => {
-                throw new IsaacError (
-                        "endTest takes three arguments. These are two message strings - one to show on test pass and " +
-                        "one to show on test fail, and the third is a boolean deciding whether all test inputs given need to " +
-                        "be used or not. The first two arguments can also be set to undefined."
-                );
-            }, outputSinceLastTest, testCallbacks);
+        const args = arguments.length;
+        if (undefined === testCallbacks) {
+            throw new IsaacError("name 'endTest' is not defined - nice try!");
+        }
+        if (0 > args || args > 3) {
+            throw new IsaacError (
+                "endTest takes three arguments. These are two message strings - one to show on test pass and " +
+                "one to show on test fail, and the third is a boolean deciding whether all test inputs given need to " +
+                "be used or not. The first two arguments can also be set to undefined."
+            );
+        }
+        let successMessage = args < 1 ? undefined : ((message) => {
+            if (typeof message === "string" || undefined === message) {
+                return message;
+            } else {
+                throw new IsaacError("'Test success' feedback must be a string or undefined");
+            }
+        })(testSuccess);
+        let failMessage = args < 2 ? undefined : ((message) => {
+            if (typeof message === "string" || undefined === message) {
+                return message;
+            } else {
+                throw new IsaacError("'Test failed' feedback must be a string or undefined");
+            }
+        })(testFail);
+        let useAllInputs = args < 3 ? undefined : ((uai) => {
+            if (typeof uai === "boolean" || undefined === uai) {
+                return uai;
+            } else {
+                throw new IsaacError("'allInputsMustBeUsed' must be a boolean or undefined");
+            }
+        })(allInputsMustBeUsed);
+
+        // Run test
+        const error = testCallbacks.runCurrentTest(outputSinceLastTest, useAllInputs, successMessage, failMessage);
+        if (error) {
+            throw error;
+        }
         // If the test fails, an error is thrown. Otherwise, we need to clear outputSinceLastTest
         outputSinceLastTest = "";
     }
 
-    // TODO this doesn't work, and crashes the iframe. Maybe the best way is to provide a synchronous testInputHandler, and
-    //  just let the user get inputs via the prompt message box.
     function promptFunc(promptText: any, defaultText?: undefined) {
         if (defaultText !== undefined) {
             throw new IsaacError("Sorry, the Isaac implementation of `prompt` doesn't support default text.");
         }
-        printOutput(promptText);
 
-        let ret = undefined;
-        setImmediate(async () => {
-            ret = await handleInput();
-        }, []);
-        // Block until ret is populated - TODO breaks everything
-        while (ret === undefined);
-
-        return ret;
+        // If the input from `handleInput` is just a string, then we can use it.
+        const input = handleInput();
+        if (typeof input === "string") {
+            return input;
+        } else {
+            return globalWindow.prompt(promptText) ?? "";
+        }
     }
 
     function alertFunc(message: any) {
@@ -129,8 +136,6 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 
     const prompt = promptFunc;
     const alert = alertFunc;
-
-    //const parsedCode = Parser.parse(code, {ecmaVersion: 2020}); // using Parser from acorn
 
     return (async () => {
         eval(code);
@@ -159,7 +164,7 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
         });
 });
 
-function runSetupCode(printOutput: (output: string) => void, handleInput: () => Promise<string>, setupCode?: string, testCallbacks?: TestCallbacks) {
+function runSetupCode(printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), setupCode?: string, testCallbacks?: TestCallbacks) {
     if (setupCode) {
         return runCode(setupCode, printOutput, handleInput, {}, testCallbacks);
     } else {
@@ -167,7 +172,7 @@ function runSetupCode(printOutput: (output: string) => void, handleInput: () => 
     }
 }
 
-function runTests(output: string, handleInput: () => Promise<string>, testCode?: string, testCallbacks?: TestCallbacks) {
+function runTests(output: string, handleInput: () => (Promise<string> | string), testCode?: string, testCallbacks?: TestCallbacks) {
     if (testCode) {
         return runCode(testCode, noop, handleInput, {}, testCallbacks).then((testOutput) => {
             // Do something with output + testOutput maybe?
@@ -200,7 +205,8 @@ export const javaScriptLanguage: ILanguage = {
           }
         }
         `,
-    requiresBundledCode: true
+    requiresBundledCode: true,
+    syncTestInputHander: true,
 }
 
 // --- JavaScript theme ---

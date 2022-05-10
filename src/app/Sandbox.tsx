@@ -52,21 +52,30 @@ const handleRun = (terminal: ITerminal,
 		if (reversedInputs.length === 0) {
 			reject({error: "Your program asked for input when none was expected, so we couldn't give it a valid input...", isTestError: true});
 		} else {
-			// @ts-ignore There is definitely an input here
-			resolve(reversedInputs.pop());
+			// There is definitely an input here
+			resolve(reversedInputs.pop() ?? "");
 		}
 	});
 
-	// TODO use this
 	const syncTestInputHandler = () => {
 		inputCount -= 1;
 		if (reversedInputs.length === 0) {
 			throw {error: "Your program asked for input when none was expected, so we couldn't give it a valid input...", isTestError: true};
 		} else {
-			// @ts-ignore There is definitely an input here
-			return reversedInputs.pop();
+			// There is definitely an input here
+			return reversedInputs.pop() ?? "";
 		}
 	};
+
+	const testInputHandler = (sync: boolean) => {
+		return () => {
+			if (sync) {
+				return syncTestInputHandler();
+			} else {
+				return asyncTestInputHandler();
+			}
+		}
+	}
 
 	const testCallbacks: TestCallbacks = {
 		setTestInputs: (inputs: string[] | undefined) => {
@@ -124,7 +133,11 @@ const handleRun = (terminal: ITerminal,
 		.then(() => {
 			// Wrap code in a 'main' function if specified by the content block
 			let modifiedCode = (language.requiresBundledCode ? (bundledSetupCode + "\n") : "") + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code);
-			return language.runCode(modifiedCode, doChecks ? noop : terminal.output, doChecks ? asyncTestInputHandler : terminal.input, {retainGlobals: true, execLimit: 2000 /* 2 seconds */})
+			return language.runCode(
+				modifiedCode,
+				doChecks ? noop : terminal.output,
+				doChecks ? testInputHandler(language.syncTestInputHander) : terminal.input,
+				{retainGlobals: true, execLimit: 2000 /* 2 seconds */})
 		})
 		.then((finalOutput) => {
 			// Run the tests only if the "Check" button was clicked
@@ -151,7 +164,6 @@ const editorYPaddingBorderAndMargin = 23 + 2 + 16;
 const buttonHeightAndYMargin = 50 + 16;
 const terminalHeight = 200;
 const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + buttonHeightAndYMargin + terminalHeight;
-
 
 
 export const Sandbox = () => {
