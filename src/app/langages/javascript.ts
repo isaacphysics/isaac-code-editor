@@ -6,7 +6,7 @@ import {tags, HighlightStyle} from "@codemirror/highlight";
 import {javascript} from "@codemirror/lang-javascript";
 
 /**
- * JAVASCRIPT SUPPORT IS CURRENTLY IN BETA - it can be run, but can't be checked
+ * JAVASCRIPT SUPPORT IS CURRENTLY IN BETA
  */
 
 let checkerResult: string | undefined = undefined;

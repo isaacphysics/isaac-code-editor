@@ -269,7 +269,7 @@ export const Sandbox = () => {
 				Below is an implementation of the bubble sort algorithm! It is an example of <b>indefinite</b> and <b>nested</b> iteration. Interact with the code to understand how it works.
 			</p>
 			<p>
-				If you modify the code, you can press the test button to see if it still sorts lists correctly (unless it's JavaScript, in which case testing isn't functional yet).
+				If you modify the code, you can press the test button to see if it still sorts lists correctly.
 			</p>
 		</>}
 		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} />
