@@ -10,7 +10,7 @@ export function startTestTemplate(inputs: any, regex: any, args: number, validat
         return;
     }
     testCallbacks.setTestInputs(args < 1 ? undefined : validateInputs(inputs));
-    testCallbacks.setTestRegex(args < 2 ?undefined : validateRegex(regex));
+    testCallbacks.setTestRegex(args < 2 ? undefined : validateRegex(regex));
 }
 
 export function endTestTemplate(testSuccess: any, testFail: any, allInputsMustBeUsed: any, args: number, validateSuccessMessage: (message: any) => string | undefined, validateFailMessage: (message: any) => string | undefined, validateUseAllInputs: (bool: any) => boolean | undefined, throwNameError: () => void, throwArgError: () => void, outputSinceLastTest: string, testCallbacks?: TestCallbacks) {
@@ -22,9 +22,9 @@ export function endTestTemplate(testSuccess: any, testFail: any, allInputsMustBe
         throwArgError();
         return;
     }
-    let successMessage = args < 1 ? "Test succeeded" : validateSuccessMessage(testSuccess);
-    let failMessage = args < 2 ? "Test failed" : validateFailMessage(testFail);
-    let useAllInputs = args < 3 ? true : validateUseAllInputs(allInputsMustBeUsed) ?? true;
+    let successMessage = args < 1 ? undefined : validateSuccessMessage(testSuccess);
+    let failMessage = args < 2 ? undefined : validateFailMessage(testFail);
+    let useAllInputs = args < 3 ? undefined : validateUseAllInputs(allInputsMustBeUsed);
 
     // Run test
     const error = testCallbacks.runCurrentTest(outputSinceLastTest, useAllInputs, successMessage, failMessage);

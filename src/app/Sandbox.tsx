@@ -57,6 +57,7 @@ const handleRun = (terminal: ITerminal,
 		}
 	});
 
+	// TODO use this
 	const syncTestInputHandler = () => {
 		inputCount -= 1;
 		if (reversedInputs.length === 0) {
@@ -75,7 +76,7 @@ const handleRun = (terminal: ITerminal,
 		setTestRegex: (re: string | undefined) => {
 			outputRegex = re ? RegExp(re) : undefined;
 		},
-		runCurrentTest: (currentOutput: string, allInputsMustBeUsed: boolean, successMessage: string | undefined, failMessage: string | undefined) => {
+		runCurrentTest: (currentOutput: string, allInputsMustBeUsed?: boolean, successMessage?: string, failMessage?: string) => {
 			if (outputRegex) {
 				if (!outputRegex.test(currentOutput)) {
 					// If the output does not match the provided regex
@@ -159,7 +160,7 @@ export const Sandbox = () => {
 
 	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>(IN_IFRAME ? {
 		code: "# Loading..."
-	} : DEMO_CODE_JS ?? (Math.random() > 0.5 ? DEMO_CODE_PYTHON : DEMO_CODE_JS));
+	} : DEMO_CODE_PYTHON ?? (Math.random() > 0.5 ? DEMO_CODE_PYTHON : DEMO_CODE_JS));
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
