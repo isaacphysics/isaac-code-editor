@@ -82,3 +82,17 @@ export const DEMO_CODE_JS: PredefinedCode = {
     wrapCodeInMain: false,
     test: "startTest()\nif (!arraysEqual(bubbleSort([5, 1, 8, 5, 9, 10, 2, 1]), [1, 1, 2, 5, 5, 8, 9, 10])) {\n\tthrow new TestError(\"The 'bubbleSort' function is broken!\")\n}\nendTest()",
 }
+
+export const DEMO_JS_TESTS_CODE: PredefinedCode = {
+    language: "javascript",
+    setup: "",
+    code: "let age = parseInt(prompt(\"Please enter an accepted age \"))\n" +
+        "while (age < 18) {\n" +
+        "    age = parseInt(prompt(\"Please enter an accepted age \"))\n" +
+        "}\n" +
+        "alert(\"Done!\")",
+    wrapCodeInMain: true,
+    test: "startTest([\"4\", \"5\", \"2\", \"17\", \"18\"]);\n" +
+        "main();\n" +
+        "endTest(\"Your program stopped looping at the correct input\", \"Your program did not end after '18' being input. Try again!\", true)",
+}

@@ -4,7 +4,15 @@ import {OutputTerminal, xtermInterface} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {noop, tryCastString, useIFrameMessages} from "./services/utils";
 import {Terminal} from "xterm";
-import {DEMO_CODE_PYTHON, DEMO_CODE_JS, EXEC_STATE, IN_IFRAME, LANGUAGES, MESSAGE_TYPES} from "./constants";
+import {
+	DEMO_CODE_PYTHON,
+	DEMO_CODE_JS,
+	EXEC_STATE,
+	IN_IFRAME,
+	LANGUAGES,
+	MESSAGE_TYPES,
+	DEMO_JS_TESTS_CODE
+} from "./constants";
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage} from "./types";
 import classNames from "classnames";
 
@@ -44,30 +52,29 @@ const handleRun = (terminal: ITerminal,
 	let inputCount = 0;
 	let outputRegex: RegExp | undefined = undefined;
 
-	// Every time "input()" is called, the first element of the test inputs is given as
-	//  the user input, and that element is removed from the list. If no test input is
-	//  available, the last one is 'replayed'
-	const asyncTestInputHandler = () => new Promise<string>((resolve, reject) => {
-		inputCount -= 1;
-		if (reversedInputs.length === 0) {
-			reject({error: "Your program asked for input when none was expected, so we couldn't give it a valid input...", isTestError: true});
-		} else {
-			// There is definitely an input here
-			resolve(reversedInputs.pop() ?? "");
-		}
-	});
-
-	const syncTestInputHandler = () => {
-		inputCount -= 1;
-		if (reversedInputs.length === 0) {
-			throw {error: "Your program asked for input when none was expected, so we couldn't give it a valid input...", isTestError: true};
-		} else {
-			// There is definitely an input here
-			return reversedInputs.pop() ?? "";
-		}
-	};
-
 	const testInputHandler = (sync: boolean) => {
+		// Every time "input()" is called, the first element of the test inputs is given as
+		//  the user input, and that element is removed from the list. If no test input is
+		//  available, the last one is 'replayed'
+		const asyncTestInputHandler = () => new Promise<string>((resolve, reject) => {
+			inputCount -= 1;
+			if (reversedInputs.length === 0) {
+				reject({error: "Your program asked for input when none was expected, so we couldn't give it a valid input...", isTestError: true});
+			} else {
+				// There is definitely an input here
+				resolve(reversedInputs.pop() ?? "");
+			}
+		});
+
+		const syncTestInputHandler = () => {
+			inputCount -= 1;
+			if (reversedInputs.length === 0) {
+				throw {error: "Your program asked for input when none was expected, so we couldn't give it a valid input...", isTestError: true};
+			} else {
+				// There is definitely an input here
+				return reversedInputs.pop() ?? "";
+			}
+		};
 		return () => {
 			if (sync) {
 				return syncTestInputHandler();
@@ -145,7 +152,7 @@ const handleRun = (terminal: ITerminal,
 				const bundledTestCode = language.requiresBundledCode
 					? bundledSetupCode + "\n" + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code) + "\n" + testCode
 					: testCode;
-				return language.runTests(finalOutput, asyncTestInputHandler, bundledTestCode, testCallbacks)
+				return language.runTests(finalOutput, testInputHandler(language.syncTestInputHander), bundledTestCode, testCallbacks)
 					.then((checkerResult: string) => {
 						onTestFinish(checkerResult);
 					});
@@ -172,7 +179,7 @@ export const Sandbox = () => {
 
 	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>(IN_IFRAME ? {
 		code: "# Loading..."
-	} : DEMO_CODE_PYTHON ?? (Math.random() > 0.5 ? DEMO_CODE_PYTHON : DEMO_CODE_JS));
+	} : (Math.random() > 0.5 ? DEMO_CODE_PYTHON : DEMO_CODE_JS));
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 

@@ -114,7 +114,8 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 
         // If the input from `handleInput` is just a string, then we can use it.
         const input = handleInput();
-        if (typeof input === "string") {
+        console.log(input);
+        if (typeof input == "string") {
             return input;
         } else {
             return globalWindow.prompt(promptText) ?? "";
@@ -153,6 +154,8 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
                     default:
                         reject({error: err.toString()});
                 }
+            } else if (err.hasOwnProperty("error")) {
+                reject(err);
             } else {
                 reject({error: err.toString()});
             }
