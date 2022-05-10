@@ -139,11 +139,6 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 
     return (async () => {
         eval(code);
-        // if (testCallbacks) {
-        //     throw new IsaacError("JavaScript testing is not implemented yet, sorry!");
-        // } else {
-        //
-        // }
     })().then(() => {
             resolve(finalOutput);
         }).catch((err: any) => {

@@ -143,7 +143,7 @@ const handleRun = (terminal: ITerminal,
 			// Run the tests only if the "Check" button was clicked
 			if (doChecks) {
 				const bundledTestCode = language.requiresBundledCode
-					? bundledSetupCode + "\n" + code + "\n" + testCode
+					? bundledSetupCode + "\n" + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code) + "\n" + testCode
 					: testCode;
 				return language.runTests(finalOutput, asyncTestInputHandler, bundledTestCode, testCallbacks)
 					.then((checkerResult: string) => {
