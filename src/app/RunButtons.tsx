@@ -5,7 +5,7 @@ interface RunButtonProps {onRun: () => void, onCheck: () => void, running: strin
 
 export const RunButtons = ({onRun, onCheck, running, loaded, showCheckButton}: RunButtonProps) => {
 	return <div className={"d-flex justify-content-center mb-3"}>
-		<Button className={"run-button mx-2"} color={"secondary text-center"} onClick={onRun} disabled={!loaded || running !== EXEC_STATE.STOPPED}>
+		<Button title={"Run code"} className={"run-button mx-2"} color={"secondary text-center"} onClick={onRun} disabled={!loaded || running !== EXEC_STATE.STOPPED}>
 			{running === EXEC_STATE.RUNNING ?
 				"Running..."
 				:
@@ -16,7 +16,7 @@ export const RunButtons = ({onRun, onCheck, running, loaded, showCheckButton}: R
 				</svg>
 			}
 		</Button>
-		{showCheckButton && <Button className={"check-button mx-2"} color={"secondary text-center"} onClick={onCheck} disabled={!loaded || running !== EXEC_STATE.STOPPED}>
+		{showCheckButton && <Button title={"Test code"} className={"check-button mx-2"} color={"secondary text-center"} onClick={onCheck} disabled={!loaded || running !== EXEC_STATE.STOPPED}>
 			{running === EXEC_STATE.CHECKING ?
 				"Checking..."
 				:
