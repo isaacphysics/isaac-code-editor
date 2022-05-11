@@ -96,3 +96,12 @@ export const DEMO_JS_TESTS_CODE: PredefinedCode = {
         "main();\n" +
         "endTest(\"Your program stopped looping at the correct input\", \"Your program did not end after '18' being input. Try again!\", true)",
 }
+
+export const DEMO_PYTHON_REGEX_CODE: PredefinedCode = {
+    language: "python",
+    setup: "startTest(None, \"^1\\s2\\s3\\s4\\s5\\s?$\")",
+    code: "for count in range(1,5):\n" +
+          "  print(count)",
+    wrapCodeInMain: false,
+    test: "endTest()",
+}

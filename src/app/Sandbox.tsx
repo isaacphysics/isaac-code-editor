@@ -11,7 +11,7 @@ import {
 	IN_IFRAME,
 	LANGUAGES,
 	MESSAGE_TYPES,
-	DEMO_JS_TESTS_CODE
+	DEMO_JS_TESTS_CODE, DEMO_PYTHON_REGEX_CODE
 } from "./constants";
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage} from "./types";
 import classNames from "classnames";
@@ -94,6 +94,8 @@ const handleRun = (terminal: ITerminal,
 		},
 		runCurrentTest: (currentOutput: string, allInputsMustBeUsed?: boolean, successMessage?: string, failMessage?: string) => {
 			if (outputRegex) {
+				console.log(outputRegex);
+				console.log(currentOutput);
 				if (!outputRegex.test(currentOutput)) {
 					// If the output does not match the provided regex
 					return {error: failMessage ?? "Your program produced unexpected output...", isTestError: true};
@@ -135,30 +137,47 @@ const handleRun = (terminal: ITerminal,
 
 	const bundledSetupCode = language.testingLibrary + "\n" + (setupCode ?? "");
 
-	return language.runSetupCode(terminal.output, terminal.input, bundledSetupCode, testCallbacks)
-		.catch(({error}) => onSetupFail(error))
-		.then(() => {
-			// Wrap code in a 'main' function if specified by the content block
-			let modifiedCode = (language.requiresBundledCode ? (bundledSetupCode + "\n") : "") + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code);
+	if (language.requiresBundledCode) {
+		const bundledCode = bundledSetupCode + "\n" + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code);
+		if (doChecks) {
+			const bundledTestCode = bundledCode + "\n" + testCode
+			return language.runTests("", testInputHandler(language.syncTestInputHander), bundledTestCode, testCallbacks)
+				.then((checkerResult: string) => {
+					onTestFinish(checkerResult);
+				}).catch(printError);
+		} else {
 			return language.runCode(
-				modifiedCode,
+				bundledCode,
 				doChecks ? noop : terminal.output,
 				doChecks ? testInputHandler(language.syncTestInputHander) : terminal.input,
-				{retainGlobals: true, execLimit: 2000 /* 2 seconds */})
-		})
-		.then((finalOutput) => {
-			// Run the tests only if the "Check" button was clicked
-			if (doChecks) {
-				const bundledTestCode = language.requiresBundledCode
-					? bundledSetupCode + "\n" + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code) + "\n" + testCode
-					: testCode;
-				return language.runTests(finalOutput, testInputHandler(language.syncTestInputHander), bundledTestCode, testCallbacks)
-					.then((checkerResult: string) => {
-						onTestFinish(checkerResult);
-					});
-			}
-		})
-		.catch(printError);
+				{retainGlobals: true, execLimit: 2000 /* 2 seconds */}).catch(printError);
+		}
+	} else {
+		return language.runSetupCode(terminal.output, terminal.input, bundledSetupCode, testCallbacks)
+			.catch(({error}) => onSetupFail(error))
+			.then(() => {
+				// Wrap code in a 'main' function if specified by the content block
+				let modifiedCode = (language.requiresBundledCode ? (bundledSetupCode + "\n") : "") + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code);
+				return language.runCode(
+					modifiedCode,
+					doChecks ? noop : terminal.output,
+					doChecks ? testInputHandler(language.syncTestInputHander) : terminal.input,
+					{retainGlobals: true, execLimit: 2000 /* 2 seconds */})
+			})
+			.then((finalOutput) => {
+				// Run the tests only if the "Check" button was clicked
+				if (doChecks) {
+					const bundledTestCode = language.requiresBundledCode
+						? bundledSetupCode + "\n" + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code) + "\n" + testCode
+						: testCode;
+					return language.runTests(finalOutput, testInputHandler(language.syncTestInputHander), bundledTestCode, testCallbacks)
+						.then((checkerResult: string) => {
+							onTestFinish(checkerResult);
+						});
+				}
+			})
+			.catch(printError);
+	}
 };
 
 // TODO Find a better way to do this
@@ -239,6 +258,7 @@ export const Sandbox = () => {
 	}
 
 	const alertSetupCodeFail = (error: string) => {
+		console.log("Setup code failed with error: " + error);
 		sendMessage({type: MESSAGE_TYPES.SETUP_FAIL, message: error});
 	}
 

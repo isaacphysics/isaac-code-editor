@@ -187,21 +187,21 @@ export const javaScriptLanguage: ILanguage = {
     runTests: runTests,
     wrapInMain: (code, doChecks) => "function main() {\n" + code.split("\n").map(s => "\t" + s).join("\n") + "\n}\n" + (!doChecks ? "main()\n" : ""),
     testingLibrary: `
-        function arraysEqual(a, b) {
-          if (a === b) return true;
-          if (a == null || b == null) return false;
-          if (a.length !== b.length) return false;
-          for (var i = 0; i < a.length; ++i) {
-            if (a[i] !== b[i]) return false;
-          }
-          return true;
-        }
-        
-        class TestError extends Error {
-          constructor(message) {
-            super(message);
-          }
-        }
+function arraysEqual(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  if (a.length !== b.length) return false;
+  for (var i = 0; i < a.length; ++i) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+class TestError extends Error {
+  constructor(message) {
+    super(message);
+  }
+}
         `,
     requiresBundledCode: true,
     syncTestInputHander: true,

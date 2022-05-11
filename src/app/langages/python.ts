@@ -8,10 +8,10 @@ import {tags, HighlightStyle} from "@codemirror/highlight";
 import {python} from "@codemirror/lang-python";
 
 // Transpile and run a snippet of python code
-const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), skulptOptions= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
+const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), skulptOptions= {}, testCallbacks?: TestCallbacks, initOutputSinceLastTest = "") => new Promise<string>((resolve, reject) => {
 
 	let finalOutput = "";
-	let outputSinceLastTest = "";
+	let outputSinceLastTest = initOutputSinceLastTest;
 
 	function startTest(inputs: any, regex: any) {
 		const args = arguments.length;
@@ -103,9 +103,9 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 
 	Sk.configure({
 		output: (output: string) => {
-			printOutput(output);
 			finalOutput += output;
 			outputSinceLastTest += output;
+			printOutput(output);
 		},
 		inputfun: () => new Promise((resolve, reject) => {
 			const inputStartTime = Date.now();
@@ -158,7 +158,7 @@ function runSetupCode(printOutput: (output: string) => void, handleInput: () => 
 
 function runTests(output: string, handleInput: () => (Promise<string> | string), testCode?: string, testCallbacks?: TestCallbacks) {
 	if (testCode) {
-		return runCode(testCode, noop, handleInput, {retainGlobals: true}, testCallbacks).then((testOutput) => {
+		return runCode(testCode, noop, handleInput, {retainGlobals: true}, testCallbacks, output).then((testOutput) => {
 			// Do something with output + testOutput maybe?
 			return Sk.globals["checkerResult"]?.v?.toString() ?? UNDEFINED_CHECKER_RESULT;
 		});
@@ -173,9 +173,8 @@ export const pythonLanguage: ILanguage = {
 	runTests: runTests,
 	wrapInMain: (code, doChecks) => "def main():\n" + code.split("\n").map(s => "\t" + s).join("\n") + (!doChecks ? "\nmain()\n" : ""),
 	testingLibrary: `
-		class TestError(Exception):
-		  pass
-  		`,
+class TestError(Exception):
+  pass`,
 	requiresBundledCode: false,
 	syncTestInputHander: false,
 }
