@@ -207,10 +207,10 @@ export const Sandbox = () => {
 	const [xterm, setXTerm] = useState<Terminal>();
 
 	const updateHeight = useCallback((editorLines?: number) => {
-		if (containerRef?.current && editorLines && editorLines <= 11) {
+		if (containerRef?.current) {
 			sendMessage({
 				type: MESSAGE_TYPES.RESIZE,
-				height: heightOfEditorLine * (editorLines + 1) + nonVariableHeight
+				height: heightOfEditorLine * (Math.min(editorLines ?? 11, 11) + 1) + nonVariableHeight
 			});
 		}
 	}, [containerRef, sendMessage]);
