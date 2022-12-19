@@ -15,7 +15,9 @@ export const MESSAGE_TYPES = {
     FEEDBACK: "feedback",
     RESIZE: "resize",
     CHECKER: "checker",
-    SETUP_FAIL: "setupFail"
+    SETUP_FAIL: "setupFail",
+    PING: "ping",
+    LOGS: "logs"
 }
 
 export const EXEC_STATE = {
