@@ -215,15 +215,6 @@ export const Sandbox = () => {
 		}
 	}, [containerRef, sendMessage]);
 
-	const sendLogs = useCallback(() => {
-		if (containerRef?.current) {
-			sendMessage({
-				type: MESSAGE_TYPES.LOGS,
-				logs: []
-			});
-		}
-	}, [containerRef, sendMessage]);
-
 	useEffect(() => {
 		if (undefined === receivedData) return;
 		/** The editor can receive two types of messages
@@ -267,9 +258,13 @@ export const Sandbox = () => {
 				});
 			}
 		} else if (receivedData.type === MESSAGE_TYPES.LOGS) {
-			console.log("Logs have been requested...");
 			// TODO actually send meaningful logs
-			sendLogs();
+			if (containerRef?.current) {
+				sendMessage({
+					type: MESSAGE_TYPES.LOGS,
+					logs: []
+				});
+			}
 		}
 	}, [receivedData]);
 
