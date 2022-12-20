@@ -49,3 +49,10 @@ export interface CodeMirrorTheme {
     theme: Extension;
     highlightStyle: HighlightStyle;
 }
+
+export interface EditorChange {
+    changes: (number | [number, string])[];
+    timestamp: number;
+    annotations: string[];
+    selections: {anchor: number; head: number}[];
+}

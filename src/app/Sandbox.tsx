@@ -2,7 +2,7 @@ import {Editor} from "./Editor";
 import {RunButtons} from "./RunButtons";
 import {OutputTerminal, xtermInterface} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {noop, tryCastString, useIFrameMessages} from "./services/utils";
+import {isDefined, noop, squashLogs, tryCastString, useIFrameMessages} from "./services/utils";
 import {Terminal} from "xterm";
 import {
 	DEMO_CODE_PYTHON,
@@ -11,10 +11,12 @@ import {
 	IN_IFRAME,
 	LANGUAGES,
 	MESSAGE_TYPES,
-	DEMO_JS_TESTS_CODE, DEMO_PYTHON_REGEX_CODE
+	DEMO_JS_TESTS_CODE,
+	DEMO_PYTHON_REGEX_CODE
 } from "./constants";
-import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage} from "./types";
+import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorChange} from "./types";
 import classNames from "classnames";
+import {Button} from "reactstrap";
 
 const terminalInitialText = "Isaac Code Editor - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
@@ -206,6 +208,11 @@ export const Sandbox = () => {
 	const codeRef = useRef<{getCode: () => string | undefined}>(null);
 	const [xterm, setXTerm] = useState<Terminal>();
 
+	const [changeLog, setChangeLog] = useState<EditorChange[]>([]);
+	const appendToChangeLog = (change: EditorChange) => {
+		setChangeLog((current) => (current.concat([change])));
+	};
+
 	const updateHeight = useCallback((editorLines?: number) => {
 		if (containerRef?.current) {
 			sendMessage({
@@ -258,12 +265,13 @@ export const Sandbox = () => {
 				});
 			}
 		} else if (receivedData.type === MESSAGE_TYPES.LOGS) {
-			// TODO actually send meaningful logs
 			if (containerRef?.current) {
 				sendMessage({
 					type: MESSAGE_TYPES.LOGS,
-					logs: []
+					changes: changeLog,
+					snapshot: codeRef.current?.getCode()
 				});
+				setChangeLog([]);
 			}
 		}
 	}, [receivedData]);
@@ -307,8 +315,11 @@ export const Sandbox = () => {
 				If you modify the code, you can press the test button to see if it still sorts lists correctly.
 			</p>
 		</>}
-		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} />
+		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} appendToChangeLog={appendToChangeLog} />
 		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!(predefinedCode.test)}/>
+		<Button onClick={() => console.log(squashLogs(changeLog))}>
+			Log
+		</Button>
 		<OutputTerminal setXTerm={setXTerm} />
 	</div>
 }
