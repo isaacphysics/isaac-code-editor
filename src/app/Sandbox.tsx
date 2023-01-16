@@ -2,7 +2,7 @@ import {Editor} from "./Editor";
 import {RunButtons} from "./RunButtons";
 import {OutputTerminal, xtermInterface} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {noop, tryCastString, useIFrameMessages} from "./services/utils";
+import {isDefined, noop, tryCastString, useIFrameMessages} from "./services/utils";
 import {Terminal} from "xterm";
 import {
 	DEMO_CODE_PYTHON,
@@ -11,9 +11,10 @@ import {
 	IN_IFRAME,
 	LANGUAGES,
 	MESSAGE_TYPES,
-	DEMO_JS_TESTS_CODE, DEMO_PYTHON_REGEX_CODE
+	DEMO_JS_TESTS_CODE,
+	DEMO_PYTHON_REGEX_CODE
 } from "./constants";
-import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage} from "./types";
+import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorChange, EditorSnapshot} from "./types";
 import classNames from "classnames";
 
 const terminalInitialText = "Isaac Code Editor - running Skulpt in xterm.js:\n";
@@ -26,6 +27,7 @@ const handleRun = (terminal: ITerminal,
 				   testCode: string | undefined,
 				   wrapCodeInMain: boolean | undefined,
 				   printFeedback: (f: Feedback) => void,
+				   logSnapshot: (s: EditorSnapshot) => void,
 				   onTestFinish: (checkerResult: string) => void,
 				   onSetupFail: (error: string) => void,
 				   doChecks: boolean | undefined) => {
@@ -94,8 +96,8 @@ const handleRun = (terminal: ITerminal,
 		},
 		runCurrentTest: (currentOutput: string, allInputsMustBeUsed?: boolean, successMessage?: string, failMessage?: string) => {
 			if (outputRegex) {
-				console.log(outputRegex);
-				console.log(currentOutput);
+				//console.log(outputRegex);
+				//console.log(currentOutput);
 				if (!outputRegex.test(currentOutput)) {
 					// If the output does not match the provided regex
 					return {error: failMessage ?? "Your program produced unexpected output...", isTestError: true};
@@ -150,7 +152,14 @@ const handleRun = (terminal: ITerminal,
 				bundledCode,
 				doChecks ? noop : terminal.output,
 				doChecks ? testInputHandler(language.syncTestInputHander) : terminal.input,
-				{retainGlobals: true, execLimit: 2000 /* 2 seconds */}).catch(printError);
+				{retainGlobals: true, execLimit: 2000 /* 2 seconds */})
+				.then((finalOutput) => {
+					logSnapshot({snapshot: code, compiled: true, timestamp: Date.now()});
+					return finalOutput;
+				}).catch((e) => {
+					logSnapshot({snapshot: code, compiled: false, timestamp: Date.now(), error: e});
+					printError(e);
+				});
 		}
 	} else {
 		return language.runSetupCode(terminal.output, terminal.input, bundledSetupCode, testCallbacks)
@@ -165,6 +174,7 @@ const handleRun = (terminal: ITerminal,
 					{retainGlobals: true, execLimit: 2000 /* 2 seconds */})
 			})
 			.then((finalOutput) => {
+				logSnapshot({snapshot: code, compiled: true, timestamp: Date.now()});
 				// Run the tests only if the "Check" button was clicked
 				if (doChecks) {
 					const bundledTestCode = language.requiresBundledCode
@@ -176,7 +186,10 @@ const handleRun = (terminal: ITerminal,
 						});
 				}
 			})
-			.catch(printError);
+			.catch((e) => {
+				logSnapshot({snapshot: code, compiled: false, timestamp: Date.now(), error: e});
+				printError(e);
+			});
 	}
 };
 
@@ -205,6 +218,15 @@ export const Sandbox = () => {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const codeRef = useRef<{getCode: () => string | undefined}>(null);
 	const [xterm, setXTerm] = useState<Terminal>();
+
+	const [changeLog, setChangeLog] = useState<EditorChange[]>([]);
+	const appendToChangeLog = (change: EditorChange) => {
+		setChangeLog((current) => (current.concat([change])));
+	};
+	const [snapshotLog, setSnapshotLog] = useState<EditorSnapshot[]>([]);
+	const appendToSnapshotLog = (snapshot: EditorSnapshot) => {
+		setSnapshotLog((current) => (current.concat([snapshot])));
+	};
 
 	const updateHeight = useCallback((editorLines?: number) => {
 		if (containerRef?.current) {
@@ -245,6 +267,9 @@ export const Sandbox = () => {
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
 			updateHeight(numberOfLines);
 			setLoaded(true);
+			// Clear any irrelevant log data
+			setChangeLog([]);
+			setSnapshotLog([]);
 		} else if (receivedData.type === MESSAGE_TYPES.FEEDBACK) {
 			printFeedback({
 				succeeded: receivedData.succeeded as boolean,
@@ -258,12 +283,14 @@ export const Sandbox = () => {
 				});
 			}
 		} else if (receivedData.type === MESSAGE_TYPES.LOGS) {
-			// TODO actually send meaningful logs
 			if (containerRef?.current) {
 				sendMessage({
 					type: MESSAGE_TYPES.LOGS,
-					logs: []
+					changes: changeLog,
+					snapshots: snapshotLog
 				});
+				setChangeLog([]);
+				setSnapshotLog([]);
 			}
 		}
 	}, [receivedData]);
@@ -288,7 +315,8 @@ export const Sandbox = () => {
 		const language = LANGUAGES.get(predefinedCode?.language ?? "");
 		if (language) {
 			setRunning(doChecks ? EXEC_STATE.CHECKING : EXEC_STATE.RUNNING);
-			handleRun(xtermInterface(xterm), language, codeRef?.current?.getCode() || "", predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, sendCheckerResult, alertSetupCodeFail, doChecks)
+			const editorCode = codeRef?.current?.getCode() || "";
+			handleRun(xtermInterface(xterm), language, editorCode, predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, appendToSnapshotLog, sendCheckerResult, alertSetupCodeFail, doChecks)
 				.then(() => setRunning(EXEC_STATE.STOPPED));
 		} else {
 			alertSetupCodeFail("Unknown programming language - unable to run code!");
@@ -307,7 +335,7 @@ export const Sandbox = () => {
 				If you modify the code, you can press the test button to see if it still sorts lists correctly.
 			</p>
 		</>}
-		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} />
+		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} appendToChangeLog={appendToChangeLog} />
 		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!(predefinedCode.test)}/>
 		<OutputTerminal setXTerm={setXTerm} />
 	</div>
