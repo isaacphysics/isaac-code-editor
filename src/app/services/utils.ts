@@ -113,70 +113,72 @@ export function tryCastString(value: unknown) {
 export const noop = () => {};
 
 
-// --- Utility functions for logging ---
-
-const padChangeWithZeros = (change: (number | [number, string])[]): (number | [number, string])[] => {
-    let i = 0;
-    let paddedChange = Array.from(change);
-    while (i < paddedChange.length) {
-        if (typeof paddedChange[i] !== "number") {
-            if (i == 0) {
-                paddedChange = [0, ...paddedChange];
-            } else if (typeof paddedChange[i - 1] !== "number") {
-                const prev = paddedChange.slice(0, i);
-                const after = paddedChange.slice(i, paddedChange.length);
-                paddedChange = [...prev, 0, ...after];
-            }
-            if (i + 1 == paddedChange.length) {
-                paddedChange = [...paddedChange, 0];
-            }
-        }
-        i++;
-    }
-    return paddedChange;
-};
-
-const combineTwo = (changeA: EditorChange, changeB: EditorChange): EditorChange | undefined => {
-    const annotationA = changeA.annotations[0];
-    const annotationB = changeB.annotations[0];
-
-    // Not going to merge two changes if the annotations don't match
-    if (annotationA !== annotationB) {
-        return;
-    }
-
-    // Otherwise, switch on annotation type and work out if we can merge
-    if (annotationA === "input.type") {
-        const changesA = padChangeWithZeros(changeA.changes);
-        const changesB = padChangeWithZeros(changeB.changes);
-        console.log(changesA);
-        //return changeB;
-    }
-
-    return;
-};
-
-export const squashLogs = (changeLog: EditorChange[]) => {
-
-    const changesWithAnnotations = changeLog.filter(c => isDefined(c.annotations?.[0]));
-
-    const resultArray: (EditorChange | undefined)[] = Array.from(Array(changesWithAnnotations.length).fill(undefined));
-    resultArray[0] = changesWithAnnotations[0];
-    let i = 1;
-    let j = 0;
-    while (i < changesWithAnnotations.length) {
-        const changeA = resultArray[j] as EditorChange;
-        const changeB = changesWithAnnotations[i];
-        const combined = combineTwo(changeA, changeB);
-        if (combined) {
-            resultArray[j] = combined;
-
-        } else {
-            resultArray[j + 1] = changeB;
-            j++;
-        }
-        i++;
-    }
-
-    return resultArray.slice(0, j + 1);
-};
+// --- Utility functions for logging WIP ---
+//
+// const padChangeWithZeros = (change: (number | [number, string])[]): (number | [number, string])[] => {
+//     let i = 0;
+//     let paddedChange = Array.from(change);
+//     while (i < paddedChange.length) {
+//         if (typeof paddedChange[i] !== "number") {
+//             if (i == 0) {
+//                 paddedChange = [0, ...paddedChange];
+//             } else if (typeof paddedChange[i - 1] !== "number") {
+//                 const prev = paddedChange.slice(0, i);
+//                 const after = paddedChange.slice(i, paddedChange.length);
+//                 paddedChange = [...prev, 0, ...after];
+//             }
+//             if (i + 1 == paddedChange.length) {
+//                 paddedChange = [...paddedChange, 0];
+//             }
+//         }
+//         i++;
+//     }
+//     return paddedChange;
+// };
+//
+// const combineTwo = (changeA: EditorChange, changeB: EditorChange): EditorChange | undefined => {
+//     const annotationA = changeA.annotations[0];
+//     const annotationB = changeB.annotations[0];
+//
+//     // Not going to merge two changes if the annotations don't match
+//     if (annotationA !== annotationB) {
+//         return;
+//     }
+//
+//     const getChangeLength = (c : number | [number, string]) => {
+//         if (typeof c === "number") return c;
+//         return c[1].length;
+//     };
+//
+//     // Otherwise, switch on annotation type and work out if we can merge
+//     if (annotationA === "input.type") {
+//         const changesA = padChangeWithZeros(changeA.changes);
+//         const changesB = padChangeWithZeros(changeB.changes);
+//     }
+//
+//     return;
+// };
+//
+// export const squashLogs = (changeLog: EditorChange[]) => {
+//
+//     const changesWithAnnotations = changeLog.filter(c => isDefined(c.annotations?.[0]));
+//
+//     const resultArray: (EditorChange | undefined)[] = Array.from(Array(changesWithAnnotations.length).fill(undefined));
+//     resultArray[0] = changesWithAnnotations[0];
+//     let i = 1;
+//     let j = 0;
+//     while (i < changesWithAnnotations.length) {
+//         const changeA = resultArray[j] as EditorChange;
+//         const changeB = changesWithAnnotations[i];
+//         const combined = combineTwo(changeA, changeB);
+//         if (combined) {
+//             resultArray[j] = combined;
+//         } else {
+//             resultArray[j + 1] = changeB;
+//             j++;
+//         }
+//         i++;
+//     }
+//
+//     return resultArray.slice(0, j + 1);
+// };
