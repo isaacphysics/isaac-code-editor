@@ -219,12 +219,16 @@ export const Sandbox = () => {
 	const codeRef = useRef<{getCode: () => string | undefined}>(null);
 	const [xterm, setXTerm] = useState<Terminal>();
 
+	const [recordLogs, setRecordLogs] = useState<boolean>(false);
+
 	const [changeLog, setChangeLog] = useState<EditorChange[]>([]);
 	const appendToChangeLog = (change: EditorChange) => {
+		if (!recordLogs) return;
 		setChangeLog((current) => (current.concat([change])));
 	};
 	const [snapshotLog, setSnapshotLog] = useState<EditorSnapshot[]>([]);
 	const appendToSnapshotLog = (snapshot: EditorSnapshot) => {
+		if (!recordLogs) return;
 		setSnapshotLog((current) => (current.concat([snapshot])));
 	};
 
@@ -263,6 +267,7 @@ export const Sandbox = () => {
 				test: tryCastString(receivedData?.test),
 				language: tryCastString(receivedData?.language),
 			}
+			setRecordLogs(receivedData?.logChanges ? receivedData?.logChanges as boolean : false);
 			setPredefinedCode(newPredefCode);
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
 			updateHeight(numberOfLines);
