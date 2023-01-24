@@ -275,6 +275,8 @@ export const Sandbox = () => {
 			// Clear any irrelevant log data
 			setChangeLog([]);
 			setSnapshotLog([]);
+			// Clear any old terminal output
+			xterm?.clear();
 		} else if (receivedData.type === MESSAGE_TYPES.FEEDBACK) {
 			printFeedback({
 				succeeded: receivedData.succeeded as boolean,
