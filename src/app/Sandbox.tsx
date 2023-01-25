@@ -347,7 +347,7 @@ export const Sandbox = () => {
 
 	// Dependant on xterm character encoding - will need changing for a different terminal
 	const printFeedback = ({succeeded, message, isTest}: Feedback) => {
-		xterm && xtermInterface(xterm, () => shouldStopExecution(false)).output(`\x1b[${succeeded ? "32" : "31"};1m` + (isTest ? "> " : "") + message + (succeeded && isTest ? " \u2714" : "") + "\x1b[0m\r\n")
+		xterm && xtermInterface(xterm, () => shouldStopExecution(true)).output(`\x1b[${succeeded ? "32" : "31"};1m` + (isTest ? "> " : "") + message + (succeeded && isTest ? " \u2714" : "") + "\x1b[0m\r\n")
 	}
 
 	const callHandleRun = (doChecks?: boolean) => () => {
@@ -363,7 +363,7 @@ export const Sandbox = () => {
 		if (language) {
 			setRunning(doChecks ? EXEC_STATE.CHECKING : EXEC_STATE.RUNNING);
 			const editorCode = codeRef?.current?.getCode() || "";
-			handleRun(xtermInterface(xterm, () => shouldStopExecution(false)), language, editorCode, predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, shouldStopExecution, appendToSnapshotLog, sendCheckerResult, alertSetupCodeFail, doChecks)
+			handleRun(xtermInterface(xterm, () => shouldStopExecution(true)), language, editorCode, predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, shouldStopExecution, appendToSnapshotLog, sendCheckerResult, alertSetupCodeFail, doChecks)
 				.then(() => setRunning(EXEC_STATE.STOPPED));
 		} else {
 			alertSetupCodeFail("Unknown programming language - unable to run code!");

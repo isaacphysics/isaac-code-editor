@@ -5,6 +5,7 @@ import {javaScriptCodeMirrorTheme, javaScriptLanguage} from "./langages/javascri
 export const UNDEFINED_CHECKER_RESULT = "UNDEFINED_CHECKER_RESULT";
 
 export const ERRORS = {
+    EXEC_STOP_ERROR: "ExecStopError",
     TIME_LIMIT_ERROR: "TimeLimitError",
     EXTERNAL_ERROR: "ExternalError",
     TEST_ERROR: "TestError"

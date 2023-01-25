@@ -138,6 +138,10 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 	).then(() => {
 		resolve(finalOutput);
 	}).catch((err: any) => {
+		if (typeof err === "object" && "nativeError" in err && err.nativeError === ERRORS.EXEC_STOP_ERROR) {
+			reject({error: "Execution interrupted"});
+			return;
+		}
 		switch(err.tp$name) {
 			case ERRORS.TIME_LIMIT_ERROR:
 				reject({error: "Your program took too long to execute! Are there any infinite loops?"});

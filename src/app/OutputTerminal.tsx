@@ -3,6 +3,7 @@ import {Terminal} from "xterm";
 import {FitAddon} from "xterm-addon-fit";
 import {WebglAddon} from "xterm-addon-webgl"
 import {ITerminal} from "./types";
+import {ERRORS} from "./constants";
 
 /**
  * Handling a single input character to the xterm terminal - will recurse, building up a string
@@ -10,12 +11,12 @@ import {ITerminal} from "./types";
  */
 const handleSingleInputChar = (xterm: Terminal, input: string, checkExecutionStopped: () => boolean) => new Promise<string>((resolve, reject) => {
 	if (undefined === xterm || checkExecutionStopped()) {
-		return resolve("");
+		return reject(ERRORS.EXEC_STOP_ERROR);
 	}
 	const onDataListener = xterm.onData((s: string) => {
 		if (checkExecutionStopped()) {
 			onDataListener.dispose();
-			reject();
+			reject(ERRORS.EXEC_STOP_ERROR);
 			return;
 		}
 		// This does the recursive call by cleaning up the old listener and handling the next input
