@@ -246,6 +246,7 @@ export const Sandbox = () => {
 
 	const shouldStop = useRef<boolean>(false);
 
+	// Called by the code execution handling functions to check whether they should stop executing.
 	const shouldStopExecution = (stop: boolean) => {
 		if (!stop) return shouldStop.current;
 		if (shouldStop.current) {
@@ -254,6 +255,8 @@ export const Sandbox = () => {
 		}
 		return false;
 	};
+	// To be called by either the stop button or inside the MESSAGE_TYPES.INITIALISE message receive code. It sets
+	// a flag which the running code periodically checks to see whether it should stop execution.
 	const stopExecution = () => {
 		shouldStop.current = true;
 		// This is horrible... dispatch a random key event to xterm so that it "realises" that it should stop accepting input
