@@ -35,7 +35,7 @@ class IsaacError extends Error {
 }
 
 // Run a snippet of javascript code
-const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), options= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
+const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), shouldStopExecution: () => boolean, options= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
 
     let finalOutput = "";
     let outputSinceLastTest = "";
@@ -138,6 +138,8 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
     const prompt = promptFunc;
     const alert = alertFunc;
 
+    // TODO allow stopping execution with shouldStopExecution
+
     return (async () => {
         eval(code);
     })().then(() => {
@@ -164,15 +166,15 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 
 function runSetupCode(printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), setupCode?: string, testCallbacks?: TestCallbacks) {
     if (setupCode) {
-        return runCode(setupCode, printOutput, handleInput, {}, testCallbacks);
+        return runCode(setupCode, printOutput, handleInput, () => false, {}, testCallbacks);
     } else {
         return new Promise<string>(resolve => resolve(""));
     }
 }
 
-function runTests(output: string, handleInput: () => (Promise<string> | string), testCode?: string, testCallbacks?: TestCallbacks) {
+function runTests(output: string, handleInput: () => (Promise<string> | string), shouldStopExecution: () => boolean, testCode?: string, testCallbacks?: TestCallbacks) {
     if (testCode) {
-        return runCode(testCode, noop, handleInput, {}, testCallbacks).then((testOutput) => {
+        return runCode(testCode, noop, handleInput, shouldStopExecution, {}, testCallbacks).then((testOutput) => {
             // Do something with output + testOutput maybe?
             return checkerResult ?? UNDEFINED_CHECKER_RESULT;
         });

@@ -27,6 +27,7 @@ const handleRun = (terminal: ITerminal,
 				   testCode: string | undefined,
 				   wrapCodeInMain: boolean | undefined,
 				   printFeedback: (f: Feedback) => void,
+				   shouldStopExecution: () => boolean,
 				   logSnapshot: (s: EditorSnapshot) => void,
 				   onTestFinish: (checkerResult: string) => void,
 				   onSetupFail: (error: string) => void,
@@ -143,7 +144,7 @@ const handleRun = (terminal: ITerminal,
 		const bundledCode = bundledSetupCode + "\n" + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code);
 		if (doChecks) {
 			const bundledTestCode = bundledCode + "\n" + testCode
-			return language.runTests("", testInputHandler(language.syncTestInputHander), bundledTestCode, testCallbacks)
+			return language.runTests("", testInputHandler(language.syncTestInputHander), shouldStopExecution, bundledTestCode, testCallbacks)
 				.then((checkerResult: string) => {
 					onTestFinish(checkerResult);
 				}).catch(printError);
@@ -152,7 +153,8 @@ const handleRun = (terminal: ITerminal,
 				bundledCode,
 				doChecks ? noop : terminal.output,
 				doChecks ? testInputHandler(language.syncTestInputHander) : terminal.input,
-				{retainGlobals: true, execLimit: 2000 /* 2 seconds */})
+				shouldStopExecution,
+				{retainGlobals: true, execLimit: 30000 /* 30 seconds */})
 				.then((finalOutput) => {
 					logSnapshot({snapshot: code, compiled: true, timestamp: Date.now()});
 					return finalOutput;
@@ -171,7 +173,8 @@ const handleRun = (terminal: ITerminal,
 					modifiedCode,
 					doChecks ? noop : terminal.output,
 					doChecks ? testInputHandler(language.syncTestInputHander) : terminal.input,
-					{retainGlobals: true, execLimit: 2000 /* 2 seconds */})
+					shouldStopExecution,
+					{retainGlobals: true, execLimit: 30000 /* 30 seconds */})
 			})
 			.then((finalOutput) => {
 				logSnapshot({snapshot: code, compiled: true, timestamp: Date.now()});
@@ -180,7 +183,7 @@ const handleRun = (terminal: ITerminal,
 					const bundledTestCode = language.requiresBundledCode
 						? bundledSetupCode + "\n" + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code) + "\n" + testCode
 						: testCode;
-					return language.runTests(finalOutput, testInputHandler(language.syncTestInputHander), bundledTestCode, testCallbacks)
+					return language.runTests(finalOutput, testInputHandler(language.syncTestInputHander), shouldStopExecution, bundledTestCode, testCallbacks)
 						.then((checkerResult: string) => {
 							onTestFinish(checkerResult);
 						});
@@ -204,14 +207,22 @@ const buttonHeightAndYMargin = 50 + 16;
 const terminalHeight = 200;
 const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + buttonHeightAndYMargin + terminalHeight;
 
-
 export const Sandbox = () => {
 	const [loaded, setLoaded] = useState<boolean>(!IN_IFRAME);
 	const [running, setRunning] = useState<string>(EXEC_STATE.STOPPED);
+	const shouldStop = useRef<boolean>(false);
+
+	const shouldStopExecution = () => {
+		if (shouldStop.current) {
+			shouldStop.current = false;
+			return true;
+		}
+		return false;
+	};
 
 	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>(IN_IFRAME ? {
 		code: "# Loading..."
-	} : (Math.random() > 0.5 ? DEMO_CODE_PYTHON : DEMO_CODE_JS));
+	} : DEMO_CODE_PYTHON);
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
@@ -260,6 +271,9 @@ export const Sandbox = () => {
 		 * }
 		 */
 		if (receivedData.type === MESSAGE_TYPES.INITIALISE) {
+			// Stop currently running code (or try to)
+			shouldStop.current = true;
+
 			const newPredefCode = {
 				setup: tryCastString(receivedData?.setup) ?? "",
 				code: tryCastString(receivedData?.code),
@@ -275,6 +289,7 @@ export const Sandbox = () => {
 			// Clear any irrelevant log data
 			setChangeLog([]);
 			setSnapshotLog([]);
+
 			// Clear any old terminal output
 			xterm?.clear();
 		} else if (receivedData.type === MESSAGE_TYPES.FEEDBACK) {
@@ -319,11 +334,16 @@ export const Sandbox = () => {
 	const callHandleRun = (doChecks?: boolean) => () => {
 		if (!loaded || !xterm) return;
 
+		if (running !== EXEC_STATE.STOPPED) {
+			shouldStop.current = true;
+			return;
+		}
+
 		const language = LANGUAGES.get(predefinedCode?.language ?? "");
 		if (language) {
 			setRunning(doChecks ? EXEC_STATE.CHECKING : EXEC_STATE.RUNNING);
 			const editorCode = codeRef?.current?.getCode() || "";
-			handleRun(xtermInterface(xterm), language, editorCode, predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, appendToSnapshotLog, sendCheckerResult, alertSetupCodeFail, doChecks)
+			handleRun(xtermInterface(xterm), language, editorCode, predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, shouldStopExecution, appendToSnapshotLog, sendCheckerResult, alertSetupCodeFail, doChecks)
 				.then(() => setRunning(EXEC_STATE.STOPPED));
 		} else {
 			alertSetupCodeFail("Unknown programming language - unable to run code!");

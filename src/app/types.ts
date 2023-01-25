@@ -30,8 +30,8 @@ export interface TestCallbacks {
 
 export interface ILanguage {
     runSetupCode: (printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), setupCode?: string, testCallbacks?: TestCallbacks) => Promise<string>;
-    runTests: (output: string, handleInput: () => (Promise<string> | string), testCode?: string, testCallbacks?: TestCallbacks) => Promise<string>;
-    runCode: (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), options: object, testCallbacks?: TestCallbacks) => Promise<string>;
+    runTests: (output: string, handleInput: () => (Promise<string> | string), shouldStopExecution: () => boolean, testCode?: string, testCallbacks?: TestCallbacks) => Promise<string>;
+    runCode: (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), shouldStopExecution: () => boolean, options: object, testCallbacks?: TestCallbacks) => Promise<string>;
     wrapInMain: (code: string, doChecks?: boolean) => string;
     testingLibrary: string;
     requiresBundledCode: boolean;

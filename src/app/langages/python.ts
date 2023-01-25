@@ -8,7 +8,7 @@ import {tags, HighlightStyle} from "@codemirror/highlight";
 import {python} from "@codemirror/lang-python";
 
 // Transpile and run a snippet of python code
-const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), skulptOptions= {}, testCallbacks?: TestCallbacks, initOutputSinceLastTest = "") => new Promise<string>((resolve, reject) => {
+const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), shouldStopExecution: () => boolean, skulptOptions= {}, testCallbacks?: TestCallbacks, initOutputSinceLastTest = "") => new Promise<string>((resolve, reject) => {
 
 	let finalOutput = "";
 	let outputSinceLastTest = initOutputSinceLastTest;
@@ -121,6 +121,7 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 				}).catch(reject);
 			}
 		}),
+		yieldLimit: 100,
 		read: builtinRead,
 		killableWhile: true,
 		killableFor: true,
@@ -128,7 +129,12 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 		...skulptOptions
 	});
 	return Sk.misceval.asyncToPromise(
-		() => Sk.importMainWithBody("<stdin>", false, code, true)
+		() => Sk.importMainWithBody("<stdin>", false, code, true), {
+			// https://stackoverflow.com/questions/54503455/how-to-stop-a-script-in-skulpt
+			"*": () => {
+				if (shouldStopExecution()) throw "Execution interrupted"
+			}
+		}
 	).then(() => {
 		resolve(finalOutput);
 	}).catch((err: any) => {
@@ -150,15 +156,15 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 
 function runSetupCode(printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), setupCode?: string, testCallbacks?: TestCallbacks) {
 	if (setupCode) {
-		return runCode(setupCode, printOutput, handleInput, {retainGlobals: true}, testCallbacks);
+		return runCode(setupCode, printOutput, handleInput, () => false, {retainGlobals: true, execLimit: 3000 /* setup code can only take a maximum of 3 seconds */}, testCallbacks);
 	} else {
 		return new Promise<string>(resolve => resolve(""));
 	}
 }
 
-function runTests(output: string, handleInput: () => (Promise<string> | string), testCode?: string, testCallbacks?: TestCallbacks) {
+function runTests(output: string, handleInput: () => (Promise<string> | string), shouldStopExecution: () => boolean, testCode?: string, testCallbacks?: TestCallbacks) {
 	if (testCode) {
-		return runCode(testCode, noop, handleInput, {retainGlobals: true}, testCallbacks, output).then((testOutput) => {
+		return runCode(testCode, noop, handleInput, shouldStopExecution, {retainGlobals: true}, testCallbacks, output).then((testOutput) => {
 			// Do something with output + testOutput maybe?
 			return Sk.globals["checkerResult"]?.v?.toString() ?? UNDEFINED_CHECKER_RESULT;
 		});
