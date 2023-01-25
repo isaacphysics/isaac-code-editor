@@ -8,16 +8,20 @@ import {ITerminal} from "./types";
  * Handling a single input character to the xterm terminal - will recurse, building up a string
  * output, until CRLF is input.
  */
-const handleSingleInputChar = (xterm: Terminal, input: string) => new Promise<string>((resolve, reject) => {
-	if (undefined === xterm) {
+const handleSingleInputChar = (xterm: Terminal, input: string, checkExecutionStopped: () => boolean) => new Promise<string>((resolve, reject) => {
+	if (undefined === xterm || checkExecutionStopped()) {
 		return resolve("");
 	}
-
 	const onDataListener = xterm.onData((s: string) => {
+		if (checkExecutionStopped()) {
+			onDataListener.dispose();
+			reject();
+			return;
+		}
 		// This does the recursive call by cleaning up the old listener and handling the next input
 		const cleanUpAndRecurse = (newInput: string) => {
 			onDataListener.dispose();
-			handleSingleInputChar(xterm, newInput).then(resolve).catch(reject);
+			handleSingleInputChar(xterm, newInput, checkExecutionStopped).then(resolve).catch(reject);
 		}
 		switch (s) {
 			case '\u0003': // Ctrl+C
@@ -65,8 +69,8 @@ const handleSingleInputChar = (xterm: Terminal, input: string) => new Promise<st
 	});
 });
 
-export const xtermInterface: (xterm: Terminal) => ITerminal = (xterm: Terminal) => ({
-	input: () => handleSingleInputChar(xterm,""),
+export const xtermInterface: (xterm: Terminal, checkExecutionStopped: () => boolean) => ITerminal = (xterm, checkExecutionStopped) => ({
+	input: () => handleSingleInputChar(xterm,"", checkExecutionStopped),
 	output: (output: string) => xterm.write(output.replaceAll("\n", "\r\n")),
 	clear: () => {
 		xterm.write('\x1bc');

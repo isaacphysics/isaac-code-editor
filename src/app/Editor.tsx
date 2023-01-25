@@ -9,7 +9,6 @@ import {CodeMirrorTheme, EditorChange} from "./types";
 import {THEMES} from "./constants";
 import {pythonCodeMirrorTheme} from "./langages/python";
 import {isDefined} from "./services/utils";
-import {type} from "os";
 
 interface EditorProps {initCode?: string; language?: string; updateHeight: (editorLines: number) => void; appendToChangeLog: (change: EditorChange) => void}
 

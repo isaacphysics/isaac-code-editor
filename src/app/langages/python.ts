@@ -8,7 +8,7 @@ import {tags, HighlightStyle} from "@codemirror/highlight";
 import {python} from "@codemirror/lang-python";
 
 // Transpile and run a snippet of python code
-const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), shouldStopExecution: () => boolean, skulptOptions= {}, testCallbacks?: TestCallbacks, initOutputSinceLastTest = "") => new Promise<string>((resolve, reject) => {
+const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), shouldStopExecution: (stop: boolean) => boolean, skulptOptions= {}, testCallbacks?: TestCallbacks, initOutputSinceLastTest = "") => new Promise<string>((resolve, reject) => {
 
 	let finalOutput = "";
 	let outputSinceLastTest = initOutputSinceLastTest;
@@ -132,7 +132,7 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 		() => Sk.importMainWithBody("<stdin>", false, code, true), {
 			// https://stackoverflow.com/questions/54503455/how-to-stop-a-script-in-skulpt
 			"*": () => {
-				if (shouldStopExecution()) throw "Execution interrupted"
+				if (shouldStopExecution(true)) throw "Execution interrupted"
 			}
 		}
 	).then(() => {
@@ -162,7 +162,7 @@ function runSetupCode(printOutput: (output: string) => void, handleInput: () => 
 	}
 }
 
-function runTests(output: string, handleInput: () => (Promise<string> | string), shouldStopExecution: () => boolean, testCode?: string, testCallbacks?: TestCallbacks) {
+function runTests(output: string, handleInput: () => (Promise<string> | string), shouldStopExecution: (stop: boolean) => boolean, testCode?: string, testCallbacks?: TestCallbacks) {
 	if (testCode) {
 		return runCode(testCode, noop, handleInput, shouldStopExecution, {retainGlobals: true}, testCallbacks, output).then((testOutput) => {
 			// Do something with output + testOutput maybe?

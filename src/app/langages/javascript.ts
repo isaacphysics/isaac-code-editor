@@ -35,7 +35,7 @@ class IsaacError extends Error {
 }
 
 // Run a snippet of javascript code
-const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), shouldStopExecution: () => boolean, options= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
+const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), shouldStopExecution: (stop: boolean) => boolean, options= {}, testCallbacks?: TestCallbacks) => new Promise<string>((resolve, reject) => {
 
     let finalOutput = "";
     let outputSinceLastTest = "";
@@ -172,7 +172,7 @@ function runSetupCode(printOutput: (output: string) => void, handleInput: () => 
     }
 }
 
-function runTests(output: string, handleInput: () => (Promise<string> | string), shouldStopExecution: () => boolean, testCode?: string, testCallbacks?: TestCallbacks) {
+function runTests(output: string, handleInput: () => (Promise<string> | string), shouldStopExecution: (stop: boolean) => boolean, testCode?: string, testCallbacks?: TestCallbacks) {
     if (testCode) {
         return runCode(testCode, noop, handleInput, shouldStopExecution, {}, testCallbacks).then((testOutput) => {
             // Do something with output + testOutput maybe?

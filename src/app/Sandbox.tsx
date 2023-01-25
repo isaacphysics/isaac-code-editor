@@ -16,6 +16,7 @@ import {
 } from "./constants";
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorChange, EditorSnapshot} from "./types";
 import classNames from "classnames";
+import {Button} from "reactstrap";
 
 const terminalInitialText = "Isaac Code Editor - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
@@ -27,7 +28,7 @@ const handleRun = (terminal: ITerminal,
 				   testCode: string | undefined,
 				   wrapCodeInMain: boolean | undefined,
 				   printFeedback: (f: Feedback) => void,
-				   shouldStopExecution: () => boolean,
+				   shouldStopExecution: (stop: boolean) => boolean,
 				   logSnapshot: (s: EditorSnapshot) => void,
 				   onTestFinish: (checkerResult: string) => void,
 				   onSetupFail: (error: string) => void,
@@ -212,7 +213,8 @@ export const Sandbox = () => {
 	const [running, setRunning] = useState<string>(EXEC_STATE.STOPPED);
 	const shouldStop = useRef<boolean>(false);
 
-	const shouldStopExecution = () => {
+	const shouldStopExecution = (stop: boolean) => {
+		if (!stop) return shouldStop.current;
 		if (shouldStop.current) {
 			shouldStop.current = false;
 			return true;
@@ -293,7 +295,7 @@ export const Sandbox = () => {
 			setSnapshotLog([]);
 
 			// Clear any old terminal output
-			xterm?.clear();
+			xterm && xtermInterface(xterm, () => shouldStopExecution(false)).clear();
 		} else if (receivedData.type === MESSAGE_TYPES.FEEDBACK) {
 			printFeedback({
 				succeeded: receivedData.succeeded as boolean,
@@ -330,7 +332,7 @@ export const Sandbox = () => {
 
 	// Dependant on xterm character encoding - will need changing for a different terminal
 	const printFeedback = ({succeeded, message, isTest}: Feedback) => {
-		xterm && xtermInterface(xterm).output(`\x1b[${succeeded ? "32" : "31"};1m` + (isTest ? "> " : "") + message + (succeeded && isTest ? " \u2714" : "") + "\x1b[0m\r\n")
+		xterm && xtermInterface(xterm, () => shouldStopExecution(false)).output(`\x1b[${succeeded ? "32" : "31"};1m` + (isTest ? "> " : "") + message + (succeeded && isTest ? " \u2714" : "") + "\x1b[0m\r\n")
 	}
 
 	const callHandleRun = (doChecks?: boolean) => () => {
@@ -338,6 +340,16 @@ export const Sandbox = () => {
 
 		if (running !== EXEC_STATE.STOPPED) {
 			shouldStop.current = true;
+			// This is horrible... dispatch a random key event to xterm so that it "realises" that it should stop accepting input
+			xterm?.element?.querySelector(".xterm-helper-textarea")?.dispatchEvent(new KeyboardEvent('keydown', {
+				key: "b",
+				keyCode: 66,
+				code: "KeyE",
+				which: 66,
+				shiftKey: false,
+				ctrlKey: false,
+				metaKey: false
+			}));
 			return;
 		}
 		shouldStop.current = false;
@@ -346,7 +358,7 @@ export const Sandbox = () => {
 		if (language) {
 			setRunning(doChecks ? EXEC_STATE.CHECKING : EXEC_STATE.RUNNING);
 			const editorCode = codeRef?.current?.getCode() || "";
-			handleRun(xtermInterface(xterm), language, editorCode, predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, shouldStopExecution, appendToSnapshotLog, sendCheckerResult, alertSetupCodeFail, doChecks)
+			handleRun(xtermInterface(xterm, () => shouldStopExecution(false)), language, editorCode, predefinedCode.setup, predefinedCode.test, predefinedCode.wrapCodeInMain, printFeedback, shouldStopExecution, appendToSnapshotLog, sendCheckerResult, alertSetupCodeFail, doChecks)
 				.then(() => setRunning(EXEC_STATE.STOPPED));
 		} else {
 			alertSetupCodeFail("Unknown programming language - unable to run code!");
