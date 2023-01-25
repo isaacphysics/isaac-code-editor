@@ -211,16 +211,6 @@ const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + bu
 export const Sandbox = () => {
 	const [loaded, setLoaded] = useState<boolean>(!IN_IFRAME);
 	const [running, setRunning] = useState<string>(EXEC_STATE.STOPPED);
-	const shouldStop = useRef<boolean>(false);
-
-	const shouldStopExecution = (stop: boolean) => {
-		if (!stop) return shouldStop.current;
-		if (shouldStop.current) {
-			shouldStop.current = false;
-			return true;
-		}
-		return false;
-	};
 
 	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>(IN_IFRAME ? {
 		code: "# Loading..."
@@ -254,6 +244,31 @@ export const Sandbox = () => {
 		}
 	}, [containerRef, sendMessage]);
 
+	const shouldStop = useRef<boolean>(false);
+
+	const shouldStopExecution = (stop: boolean) => {
+		if (!stop) return shouldStop.current;
+		if (shouldStop.current) {
+			shouldStop.current = false;
+			return true;
+		}
+		return false;
+	};
+	const stopExecution = () => {
+		shouldStop.current = true;
+		// This is horrible... dispatch a random key event to xterm so that it "realises" that it should stop accepting input
+		xterm?.element?.querySelector(".xterm-helper-textarea")?.dispatchEvent(new KeyboardEvent('keydown', {
+			key: "b",
+			keyCode: 66,
+			code: "KeyE",
+			which: 66,
+			shiftKey: false,
+			ctrlKey: false,
+			metaKey: false
+		}));
+		return;
+	}
+
 	useEffect(() => {
 		if (undefined === receivedData) return;
 		/** The editor can receive two types of messages
@@ -275,7 +290,7 @@ export const Sandbox = () => {
 		if (receivedData.type === MESSAGE_TYPES.INITIALISE) {
 			// Stop currently running code (or try to)
 			if (running !== EXEC_STATE.STOPPED) {
-				shouldStop.current = true;
+				stopExecution();
 			}
 
 			const newPredefCode = {
@@ -339,17 +354,7 @@ export const Sandbox = () => {
 		if (!loaded || !xterm) return;
 
 		if (running !== EXEC_STATE.STOPPED) {
-			shouldStop.current = true;
-			// This is horrible... dispatch a random key event to xterm so that it "realises" that it should stop accepting input
-			xterm?.element?.querySelector(".xterm-helper-textarea")?.dispatchEvent(new KeyboardEvent('keydown', {
-				key: "b",
-				keyCode: 66,
-				code: "KeyE",
-				which: 66,
-				shiftKey: false,
-				ctrlKey: false,
-				metaKey: false
-			}));
+			stopExecution();
 			return;
 		}
 		shouldStop.current = false;
