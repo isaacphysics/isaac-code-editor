@@ -272,7 +272,9 @@ export const Sandbox = () => {
 		 */
 		if (receivedData.type === MESSAGE_TYPES.INITIALISE) {
 			// Stop currently running code (or try to)
-			shouldStop.current = true;
+			if (running !== EXEC_STATE.STOPPED) {
+				shouldStop.current = true;
+			}
 
 			const newPredefCode = {
 				setup: tryCastString(receivedData?.setup) ?? "",
@@ -338,6 +340,7 @@ export const Sandbox = () => {
 			shouldStop.current = true;
 			return;
 		}
+		shouldStop.current = false;
 
 		const language = LANGUAGES.get(predefinedCode?.language ?? "");
 		if (language) {
