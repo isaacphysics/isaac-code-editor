@@ -41,6 +41,7 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
     let outputSinceLastTest = "";
 
     function startTest(inputs: any, regex: any) {
+        outputSinceLastTest = "";
         const args = arguments.length;
         if (undefined === testCallbacks) {
             return; // since the setup code is bundled with the students code, we need to allow this to be run even if not testing
@@ -98,13 +99,11 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
             }
         })(allInputsMustBeUsed);
 
-        // Run test
+        // Run test - if the test fails, an error is thrown.
         const error = testCallbacks.runCurrentTest(outputSinceLastTest, useAllInputs, successMessage, failMessage);
         if (error) {
             throw error;
         }
-        // If the test fails, an error is thrown. Otherwise, we need to clear outputSinceLastTest
-        outputSinceLastTest = "";
     }
 
     function promptFunc(promptText: any, defaultText?: undefined) {

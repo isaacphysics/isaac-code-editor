@@ -14,6 +14,7 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 	let outputSinceLastTest = initOutputSinceLastTest;
 
 	function startTest(inputs: any, regex: any) {
+		outputSinceLastTest = "";
 		const args = arguments.length;
 		if (undefined === testCallbacks) {
 			throw new Sk.builtin.NameError("name 'startTest' is not defined - nice try!");
@@ -79,13 +80,11 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 			}
 		})(allInputsMustBeUsed);
 
-		// Run test
+		// Run test - if the test fails, an error is thrown
 		const error = testCallbacks.runCurrentTest(outputSinceLastTest, useAllInputs, successMessage, failMessage);
 		if (error) {
 			throw error;
 		}
-		// If the test fails, an error is thrown. Otherwise, we need to clear outputSinceLastTest
-		outputSinceLastTest = "";
 	}
 
 	function builtinRead(x: string) {
