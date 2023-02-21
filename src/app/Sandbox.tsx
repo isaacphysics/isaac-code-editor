@@ -2,21 +2,17 @@ import {Editor} from "./Editor";
 import {RunButtons} from "./RunButtons";
 import {OutputTerminal, xtermInterface} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {isDefined, noop, tryCastString, useIFrameMessages} from "./services/utils";
+import {noop, tryCastString, useIFrameMessages} from "./services/utils";
 import {Terminal} from "xterm";
 import {
 	DEMO_CODE_PYTHON,
-	DEMO_CODE_JS,
 	EXEC_STATE,
 	IN_IFRAME,
 	LANGUAGES,
-	MESSAGE_TYPES,
-	DEMO_JS_TESTS_CODE,
-	DEMO_PYTHON_REGEX_CODE
+	MESSAGE_TYPES
 } from "./constants";
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorChange, EditorSnapshot} from "./types";
 import classNames from "classnames";
-import {Button} from "reactstrap";
 
 const terminalInitialText = "Isaac Code Editor - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
@@ -59,7 +55,7 @@ const handleRun = (terminal: ITerminal,
 	const testInputHandler = (sync: boolean) => {
 		// Every time "input()" is called, the first element of the test inputs is given as
 		//  the user input, and that element is removed from the list. If no test input is
-		//  available, the last one is 'replayed'
+		//  available, a test error is thrown TODO add option for dummy inputs
 		const asyncTestInputHandler = () => new Promise<string>((resolve, reject) => {
 			inputCount -= 1;
 			if (reversedInputs.length === 0) {
@@ -152,8 +148,8 @@ const handleRun = (terminal: ITerminal,
 		} else {
 			return language.runCode(
 				bundledCode,
-				doChecks ? noop : terminal.output,
-				doChecks ? testInputHandler(language.syncTestInputHander) : terminal.input,
+				terminal.output,
+				terminal.input,
 				shouldStopExecution,
 				{retainGlobals: true, execLimit: 30000 /* 30 seconds */})
 				.then((finalOutput) => {
@@ -169,7 +165,7 @@ const handleRun = (terminal: ITerminal,
 			.catch(({error}) => onSetupFail(error))
 			.then(() => {
 				// Wrap code in a 'main' function if specified by the content block
-				let modifiedCode = (language.requiresBundledCode ? (bundledSetupCode + "\n") : "") + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code);
+				let modifiedCode = wrapCodeInMain ? language.wrapInMain(code, doChecks) : code;
 				return language.runCode(
 					modifiedCode,
 					doChecks ? noop : terminal.output,
@@ -181,10 +177,7 @@ const handleRun = (terminal: ITerminal,
 				logSnapshot({snapshot: code, compiled: true, timestamp: Date.now()});
 				// Run the tests only if the "Check" button was clicked
 				if (doChecks) {
-					const bundledTestCode = language.requiresBundledCode
-						? bundledSetupCode + "\n" + (wrapCodeInMain ? language.wrapInMain(code, doChecks) : code) + "\n" + testCode
-						: testCode;
-					return language.runTests(finalOutput, testInputHandler(language.syncTestInputHander), shouldStopExecution, bundledTestCode, testCallbacks)
+					return language.runTests(finalOutput, testInputHandler(language.syncTestInputHander), shouldStopExecution, testCode, testCallbacks)
 						.then((checkerResult: string) => {
 							onTestFinish(checkerResult);
 						});
@@ -308,9 +301,9 @@ export const Sandbox = () => {
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
 			updateHeight(numberOfLines);
 			setLoaded(true);
-			// Clear any irrelevant log data
+			// Clear any irrelevant log data, and make an initial snapshot
 			setChangeLog([]);
-			setSnapshotLog([]);
+			setSnapshotLog([{compiled: false, snapshot: newPredefCode.code ?? "", timestamp: Date.now()}]);
 
 			// Clear any old terminal output
 			xterm && xtermInterface(xterm, () => shouldStopExecution(false)).clear();
