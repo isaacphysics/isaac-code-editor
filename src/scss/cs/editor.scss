@@ -20,9 +20,40 @@
   overflow: hidden;
 }
 
+// Relevant Ada colours
+$dark-pink-100: #510937;
+$dark-pink-200: #6C0A48;
+$dark-pink-300: #870C5A;
+$focus-blue: #00A8A6;
+$cs-silver: #C2C2C2;
+
 .run-button, .check-button {
   height: 50px !important;
   padding: 0 5px !important;
+  border-radius: 50px;
+  border-color: transparent !important;
+  background-color: $dark-pink-300;
+  &:hover {
+    background-color: $dark-pink-200 !important;
+    border-radius: 50px !important;
+  }
+  &:active {
+    background-color: $dark-pink-100 !important;
+    border-radius: 50px !important;
+  }
+  &:focus {
+    box-shadow: none;
+    outline: none;
+    border-radius: 50px !important;
+  }
+  &:focus-visible {
+    outline: 2px solid $focus-blue;
+    border-radius: 0;
+    z-index: 10;
+  }
+  &.disabled, &:disabled {
+    background-color: $cs-silver;
+  }
 }
 
 .run-arrow {
