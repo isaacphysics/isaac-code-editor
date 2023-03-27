@@ -1,7 +1,6 @@
 import React, {useEffect, useRef} from "react";
 import {Terminal} from "xterm";
 import {FitAddon} from "xterm-addon-fit";
-import {WebglAddon} from "xterm-addon-webgl"
 import {ITerminal} from "./types";
 import {ERRORS} from "./constants";
 
@@ -72,7 +71,7 @@ const handleSingleInputChar = (xterm: Terminal, input: string, checkExecutionSto
 
 export const xtermInterface: (xterm: Terminal, checkExecutionStopped: () => boolean) => ITerminal = (xterm, checkExecutionStopped) => ({
 	input: () => handleSingleInputChar(xterm,"", checkExecutionStopped),
-	output: (output: string) => xterm.write(output.replaceAll("\n", "\r\n")),
+	output: (output: string) => xterm.write(output.replace(/\n/g, "\r\n")),
 	clear: () => {
 		xterm.write('\x1bc');
 		xterm.clear();
@@ -119,13 +118,14 @@ export const OutputTerminal = ({setXTerm}: OutputTerminalProps) => {
 		setXTerm(newTerm);
 		newTerm.open(xtermDiv.current);
 
-		let isWebglEnabled = false;
-		try {
-			newTerm.loadAddon(new WebglAddon());
-			isWebglEnabled = true;
-		} catch (e) {
-			console.warn("WebGL addon threw an exception during load", e);
-		}
+		// Requires xterm-addon-webgl
+		// let isWebglEnabled = false;
+		// try {
+		// 	newTerm.loadAddon(new WebglAddon());
+		// 	isWebglEnabled = true;
+		// } catch (e) {
+		// 	console.warn("WebGL addon threw an exception during load", e);
+		// }
 
 		const fitAddon = new FitAddon();
 		newTerm.loadAddon(fitAddon);
