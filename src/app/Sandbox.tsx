@@ -14,7 +14,7 @@ import {
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorChange, EditorSnapshot} from "./types";
 import classNames from "classnames";
 
-const terminalInitialText = "Isaac Code Editor - running Skulpt in xterm.js:\n";
+const terminalInitialText = "Ada Code Editor - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
 
 const handleRun = (terminal: ITerminal,
@@ -374,7 +374,7 @@ export const Sandbox = () => {
 	return <div ref={containerRef} className={classNames({"m-5": !IN_IFRAME})}>
 		{!IN_IFRAME && <>
 			<h2>
-				Isaac Code Editor Demo
+				Ada Code Editor Demo
 			</h2>
 			<p>
 				Below is an implementation of the bubble sort algorithm! It is an example of <b>indefinite</b> and <b>nested</b> iteration. Interact with the code to understand how it works.
