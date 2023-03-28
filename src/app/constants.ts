@@ -13,6 +13,7 @@ export const ERRORS = {
 
 export const MESSAGE_TYPES = {
     INITIALISE: "initialise",
+    CONFIRM_INITIALISED: "confirmInitialised",
     FEEDBACK: "feedback",
     RESIZE: "resize",
     CHECKER: "checker",

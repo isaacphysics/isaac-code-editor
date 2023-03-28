@@ -307,6 +307,11 @@ export const Sandbox = () => {
 
 			// Clear any old terminal output
 			xterm && xtermInterface(xterm, () => shouldStopExecution(false)).clear();
+
+			// Confirm that the initialisation was successful
+			sendMessage({
+				type: MESSAGE_TYPES.CONFIRM_INITIALISED,
+			});
 		} else if (receivedData.type === MESSAGE_TYPES.FEEDBACK) {
 			printFeedback({
 				succeeded: receivedData.succeeded as boolean,
