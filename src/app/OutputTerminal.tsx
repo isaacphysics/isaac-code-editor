@@ -1,6 +1,7 @@
 import React, {useEffect, useRef} from "react";
 import {Terminal} from "xterm";
 import {FitAddon} from "xterm-addon-fit";
+import {WebglAddon} from "xterm-addon-webgl"
 import {ITerminal} from "./types";
 import {ERRORS} from "./constants";
 
@@ -118,14 +119,13 @@ export const OutputTerminal = ({setXTerm}: OutputTerminalProps) => {
 		setXTerm(newTerm);
 		newTerm.open(xtermDiv.current);
 
-		// Requires xterm-addon-webgl
-		// let isWebglEnabled = false;
-		// try {
-		// 	newTerm.loadAddon(new WebglAddon());
-		// 	isWebglEnabled = true;
-		// } catch (e) {
-		// 	console.warn("WebGL addon threw an exception during load", e);
-		// }
+		let isWebglEnabled = false;
+		try {
+			newTerm.loadAddon(new WebglAddon());
+			isWebglEnabled = true;
+		} catch (e) {
+			console.warn("WebGL addon threw an exception during load", e);
+		}
 
 		const fitAddon = new FitAddon();
 		newTerm.loadAddon(fitAddon);
