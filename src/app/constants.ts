@@ -65,6 +65,8 @@ export const DEMO_CODE_PYTHON: PredefinedCode = {
     wrapCodeInMain: false,
     test: "startTest()\nif not (bubble_sort([5, 1, 8, 5, 9, 10, 2, 1]) == [1, 1, 2, 5, 5, 8, 9, 10]):\n\traise TestError(\"The 'bubble_sort' function is broken!\")\nendTest()",
 }
+
+// Example of testing output using the startTest() and endTest() functions and the built-in regex matching
 export const DEMO_CODE_PYTHON_REGEX: PredefinedCode = {
     language: "python",
     setup: "",
@@ -75,6 +77,24 @@ export const DEMO_CODE_PYTHON_REGEX: PredefinedCode = {
     test: "startTest(None, \"^tgreen1998\\n*$\")\n" +
         "memberId(\"t\",\"green\",\"1998\")\n" +
         "endTest(\"The memberId for Teresa Green was printed correctly!\", \"The memberId for Teresa Green was not printed correctly! (it should be tgreen1998)\")\n",
+}
+
+// Example of testing output using the getTestOutput() function
+export const DEMO_CODE_PYTHON_REGEX_GET_TEST_OUTPUT: PredefinedCode = {
+    language: "python",
+    setup: "",
+    code:
+        "def memberId(initial, surname, yearOfBirth):\n" +
+        "  print(initial + surname + str(yearOfBirth))\n",
+    wrapCodeInMain: false,
+    test: "import re\n" +
+        "startTest()\n" +
+        "memberId(\"t\",\"green\",\"1998\")\n" +
+        "output = getTestOutput()\n" +
+        // Manual regex match - requires importing re module first
+        "if not re.match(\"^tgreen1998\\\\n*$\", output):\n" +
+        "\traise TestError(f\"The memberId for Teresa Green was not printed correctly! (it should be tgreen1998, but your code output: '{output}')\")\n" +
+        "endTest(\"The memberId for Teresa Green was printed correctly!\")\n",
 }
 export const DEMO_CODE_JS: PredefinedCode = {
     language: "javascript",

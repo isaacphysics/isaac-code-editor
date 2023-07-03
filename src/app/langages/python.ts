@@ -42,6 +42,13 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 		})(regex));
 	}
 
+	function getTestOutput() {
+		if (undefined === testCallbacks) {
+			throw new Sk.builtin.NameError("name 'getTestOutput' is not defined - nice try!");
+		}
+		return Sk.builtins.str(outputSinceLastTest);
+	}
+
 	function endTest(testSuccess: any, testFail: any, allInputsMustBeUsed: any) {
 		const args = arguments.length;
 		if (undefined === testCallbacks) {
@@ -97,7 +104,8 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
 	Sk.builtins = {
 		...Sk.builtins,
 		"startTest": startTest,
-		"endTest": endTest
+		"endTest": endTest,
+		"getTestOutput": getTestOutput
 	};
 
 	Sk.configure({

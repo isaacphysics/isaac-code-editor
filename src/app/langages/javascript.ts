@@ -65,6 +65,13 @@ const runCode = (code: string, printOutput: (output: string) => void, handleInpu
         })(regex));
     }
 
+    function getTestOutput() {
+        if (undefined === testCallbacks) {
+            throw new IsaacError("name 'getTestOutput' is not defined - nice try!");
+        }
+        return outputSinceLastTest;
+    }
+
     function endTest(testSuccess: any, testFail: any, allInputsMustBeUsed: any) {
         const args = arguments.length;
         if (undefined === testCallbacks) {
