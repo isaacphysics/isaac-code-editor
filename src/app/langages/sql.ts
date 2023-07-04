@@ -9,9 +9,17 @@ const error = console.error;
 
 let sqlite3: Sqlite3Static;
 
+// system queries
+const QUERIES = {
+    version: "select sqlite_version() as version",
+    tables: `select name as "table" from sqlite_schema
+      where type = 'table'
+        and name not like 'sqlite_%'
+        and name not like 'sqlean_%'`,
+};
+
 const downloadDatabase = (sqlite3: any, link: string): Promise<DatabaseApi> => {
-    // Fetch with strict CORS mode.
-    return fetch(link, {mode: 'no-cors'})
+    return fetch(link)
         .then((response) => response.arrayBuffer())
         .then((arrayBuffer) => {
             const p = sqlite3.wasm.allocFromTypedArray(arrayBuffer);
@@ -19,11 +27,12 @@ const downloadDatabase = (sqlite3: any, link: string): Promise<DatabaseApi> => {
             const rc = sqlite3.capi.sqlite3_deserialize(
                 db.pointer, 'main', p, arrayBuffer.byteLength, arrayBuffer.byteLength,
                 sqlite3.capi.SQLITE_DESERIALIZE_FREEONCLOSE
-                // Optionally:
-                // | sqlite3.capi.SQLITE_DESERIALIZE_RESIZEABLE
             );
             db.checkRc(rc);
             return db;
+        }).catch((err) => {
+            console.error(err);
+            return new sqlite3.oo1.DB('/mydb.sqlite3', 'ct') as DatabaseApi;
         });
 };
 
@@ -32,12 +41,38 @@ export const runQuery = async (query: string, link?: string) => {
     let db: DatabaseApi;
     if (link) {
         db = await downloadDatabase(sqlite3, link);
+        db.exec(QUERIES.tables);
     } else {
         db = new sqlite3.oo1.DB('/mydb.sqlite3', 'ct') as DatabaseApi;
     }
     console.log('SQLite3 database opened, executing query:', query);
-    // Your SQLite code here.
-    db.exec(query);
+    let rows: string[][] = [];
+    let columnNames: string[] = [];
+    // db.exec({
+    //     sql: QUERIES.version,
+    //     rowMode: "array",
+    //     // @ts-ignore
+    //     resultRows: rows,
+    // });
+    // console.log('Version:', rows);
+    // rows = [];
+    // db.exec({
+    //     sql: QUERIES.tables,
+    //     rowMode: "array",
+    //     // @ts-ignore
+    //     resultRows: rows,
+    // });
+    // console.log('Tables:', rows);
+    // rows = [];
+    db.exec({
+        sql: query,
+        rowMode: "array",
+        // @ts-ignore
+        resultRows: rows,
+        columnNames: columnNames,
+    });
+    // console.log('Query result:', rows);
+    return {rows, columnNames};
 };
 
 sqlite3InitModule({

@@ -145,6 +145,6 @@ export const DEMO_PYTHON_REGEX_CODE: PredefinedCode = {
 
 export const DEMO_SQL_QUERY: PredefinedCode = {
     language: "sql",
-    link: "https://github.com/raspberrypilearning/ada-code-samples/raw/main/databases/sports_club.db",
-    code: "PRAGMA database_list;",
+    link: "https://cdn.isaacphysics.org/ada/test/sports_club.db",
+    code: "SELECT FirstName, LastName, CourseCode, AssessmentDate, InstructorID FROM Certificate INNER JOIN Member on Member.MemberId = Certificate.MemberId;",
 }

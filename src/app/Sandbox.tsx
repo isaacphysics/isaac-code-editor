@@ -14,6 +14,7 @@ import {
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorChange, EditorSnapshot} from "./types";
 import classNames from "classnames";
 import {runQuery} from "./langages/sql";
+import {OutputTable} from "./OutputTable";
 
 const terminalInitialText = "Ada Code Editor - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
@@ -353,6 +354,8 @@ export const Sandbox = () => {
 		xterm && xtermInterface(xterm, () => shouldStopExecution(true)).output(`\x1b[${succeeded ? "32" : "31"};1m` + (isTest ? "> " : "") + message + (succeeded && isTest ? " \u2714" : "") + "\x1b[0m\r\n")
 	}
 
+	const [queryOutput, setQueryOutput] = useState<{rows: string[][]; columnNames: string[]; error?: string}>({rows: [], columnNames: []});
+
 	const callHandleRun = (doChecks?: boolean) => () => {
 		if (!loaded || !xterm) return;
 
@@ -366,7 +369,11 @@ export const Sandbox = () => {
 			setRunning(EXEC_STATE.RUNNING);
 			const editorCode = codeRef?.current?.getCode() || "";
 			runQuery(editorCode, predefinedCode.link)
-				.then(() => setRunning(EXEC_STATE.STOPPED));
+				.then(({rows, columnNames}) => {
+					setQueryOutput({rows, columnNames});
+				}).catch((e) => {
+					setQueryOutput({rows: [], error: `Query failed to execute: ${e}`, columnNames: []});
+				}).then(() => setRunning(EXEC_STATE.STOPPED));
 			return;
 		}
 
@@ -381,22 +388,39 @@ export const Sandbox = () => {
 		}
 	}
 
-	const shouldShowTerminal = predefinedCode.language === "python" || predefinedCode.language === "javascript";
+	const languageIsSQL = predefinedCode.language === "sql";
 
 	return <div ref={containerRef} className={classNames({"m-5": !IN_IFRAME})}>
 		{!IN_IFRAME && <>
 			<h2>
 				Ada Code Editor Demo
 			</h2>
-			<p>
-				Below is an implementation of the bubble sort algorithm! It is an example of <b>indefinite</b> and <b>nested</b> iteration. Interact with the code to understand how it works.
-			</p>
-			<p>
-				If you modify the code, you can press the test button to see if it still sorts lists correctly.
-			</p>
+			{languageIsSQL
+				? <>
+					<p>
+						Here is an example of a SQLite query! Interact with the query to understand how it works.<br/>
+						The tables you have access to are listed below:
+						<ul>
+							<li><code>Member</code></li>
+							<li><code>Course</code></li>
+							<li><code>Instructor</code></li>
+							<li><code>Certificate</code></li>
+						</ul>
+					</p>
+				</>
+				: <>
+					<p>
+						Below is an implementation of the bubble sort algorithm! It is an example of <b>indefinite</b> and <b>nested</b> iteration. Interact with the code to understand how it works.
+					</p>
+					<p>
+						If you modify the code, you can press the test button to see if it still sorts lists correctly.
+					</p>
+				</>
+			}
 		</>}
 		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} appendToChangeLog={appendToChangeLog} />
 		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!("test" in predefinedCode && predefinedCode.test)}/>
-		<OutputTerminal setXTerm={setXTerm} />
+		<OutputTerminal setXTerm={setXTerm} hidden={languageIsSQL} />
+		{languageIsSQL && <OutputTable rows={queryOutput.rows} error={queryOutput.error} columnNames={queryOutput.columnNames}/>}
 	</div>
 }
