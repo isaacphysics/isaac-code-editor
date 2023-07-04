@@ -5,6 +5,7 @@ import React, {useCallback, useEffect, useRef, useState} from "react";
 import {noop, tryCastString, useIFrameMessages} from "./services/utils";
 import {Terminal} from "xterm";
 import {
+	DEMO_CODE_JS,
 	DEMO_CODE_PYTHON, DEMO_SQL_QUERY,
 	EXEC_STATE,
 	IN_IFRAME,
@@ -15,6 +16,7 @@ import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorCha
 import classNames from "classnames";
 import {runQuery} from "./langages/sql";
 import {OutputTable} from "./OutputTable";
+import {Button} from "reactstrap";
 
 const terminalInitialText = "Ada Code Editor - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
@@ -388,12 +390,23 @@ export const Sandbox = () => {
 		}
 	}
 
+	const cycleCodeSnippet = () => {
+		if (!loaded) return;
+		if (predefinedCode?.language === "sql") {
+			setPredefinedCode(DEMO_CODE_PYTHON);
+		} else if (predefinedCode?.language === "python") {
+			setPredefinedCode(DEMO_CODE_JS);
+		} else {
+			setPredefinedCode(DEMO_SQL_QUERY);
+		}
+	}
+
 	const languageIsSQL = predefinedCode.language === "sql";
 
 	return <div ref={containerRef} className={classNames({"m-5": !IN_IFRAME})}>
 		{!IN_IFRAME && <>
 			<h2>
-				Ada Code Editor Demo
+				Ada Code Editor Demo   <Button size="sm" className="d-inline-block" color={"outline"} onClick={cycleCodeSnippet}>Cycle code snippet</Button>
 			</h2>
 			{languageIsSQL
 				? <>

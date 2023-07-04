@@ -2,7 +2,7 @@ import {EditorView} from "@codemirror/basic-setup";
 import {HighlightStyle, tags} from "@codemirror/highlight";
 import {CodeMirrorTheme} from "../types";
 import {sql} from "@codemirror/lang-sql";
-import sqlite3InitModule, {Sqlite3Static, DatabaseApi, Database}  from "@sqlite.org/sqlite-wasm";
+import {type Sqlite3Static, type DatabaseApi}  from "@sqlite.org/sqlite-wasm";
 
 const log = console.log;
 const error = console.error;
@@ -18,6 +18,23 @@ const QUERIES = {
         and name not like 'sqlean_%'`,
 };
 
+const setupSqlite3 = async () => {
+    const {default: sqlite3InitModule} = await import("@sqlite.org/sqlite-wasm");
+    return await sqlite3InitModule({
+        print: log,
+        printErr: error,
+    }).then((sql3) => {
+        try {
+            log('Running SQLite3 version', sql3.version.libVersion);
+            sqlite3 = sql3;
+            return sqlite3;
+        } catch (err) {
+            // @ts-ignore
+            error(err.name, err.message);
+        }
+    });
+}
+
 const downloadDatabase = (sqlite3: any, link: string): Promise<DatabaseApi> => {
     return fetch(link)
         .then((response) => response.arrayBuffer())
@@ -32,12 +49,14 @@ const downloadDatabase = (sqlite3: any, link: string): Promise<DatabaseApi> => {
             return db;
         }).catch((err) => {
             console.error(err);
-            return new sqlite3.oo1.DB('/mydb.sqlite3', 'ct') as DatabaseApi;
+            return new sqlite3.oo1.DB('/mydb.sqlite3', 'ct');
         });
 };
 
 export const runQuery = async (query: string, link?: string) => {
-    log('Running SQLite3 version', sqlite3.version.libVersion);
+    if (!sqlite3) {
+        await setupSqlite3();
+    }
     let db: DatabaseApi;
     if (link) {
         db = await downloadDatabase(sqlite3, link);
@@ -71,21 +90,8 @@ export const runQuery = async (query: string, link?: string) => {
         resultRows: rows,
         columnNames: columnNames,
     });
-    // console.log('Query result:', rows);
     return {rows, columnNames};
 };
-
-sqlite3InitModule({
-    print: log,
-    printErr: error,
-}).then((sqli3) => {
-    try {
-        sqlite3 = sqli3;
-    } catch (err) {
-        // @ts-ignore
-        error(err.name, err.message);
-    }
-});
 
 export const sqlTheme = EditorView.theme({
     ".cm-gutters": {
