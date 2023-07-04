@@ -5,7 +5,7 @@ import React, {useCallback, useEffect, useRef, useState} from "react";
 import {noop, tryCastString, useIFrameMessages} from "./services/utils";
 import {Terminal} from "xterm";
 import {
-	DEMO_CODE_PYTHON,
+	DEMO_CODE_PYTHON, DEMO_SQL_QUERY,
 	EXEC_STATE,
 	IN_IFRAME,
 	LANGUAGES,
@@ -13,6 +13,7 @@ import {
 } from "./constants";
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorChange, EditorSnapshot} from "./types";
 import classNames from "classnames";
+import {runQuery} from "./langages/sql";
 
 const terminalInitialText = "Ada Code Editor - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
@@ -206,8 +207,9 @@ export const Sandbox = () => {
 	const [running, setRunning] = useState<string>(EXEC_STATE.STOPPED);
 
 	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>(IN_IFRAME ? {
+		language: "python",
 		code: "# Loading..."
-	} : DEMO_CODE_PYTHON);
+	} : DEMO_SQL_QUERY);
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
@@ -294,7 +296,7 @@ export const Sandbox = () => {
 				code: tryCastString(receivedData?.code),
 				wrapCodeInMain: receivedData?.wrapCodeInMain ? receivedData?.wrapCodeInMain as boolean : undefined,
 				test: tryCastString(receivedData?.test),
-				language: tryCastString(receivedData?.language),
+				language: tryCastString(receivedData?.language) as "python" | "sql" | "javascript",
 			}
 			setRecordLogs(receivedData?.logChanges ? receivedData?.logChanges as boolean : false);
 			setPredefinedCode(newPredefCode);
@@ -360,6 +362,14 @@ export const Sandbox = () => {
 		}
 		shouldStop.current = false;
 
+		if (predefinedCode?.language === "sql") {
+			setRunning(EXEC_STATE.RUNNING);
+			const editorCode = codeRef?.current?.getCode() || "";
+			runQuery(editorCode, predefinedCode.link)
+				.then(() => setRunning(EXEC_STATE.STOPPED));
+			return;
+		}
+
 		const language = LANGUAGES.get(predefinedCode?.language ?? "");
 		if (language) {
 			setRunning(doChecks ? EXEC_STATE.CHECKING : EXEC_STATE.RUNNING);
@@ -370,6 +380,8 @@ export const Sandbox = () => {
 			alertSetupCodeFail("Unknown programming language - unable to run code!");
 		}
 	}
+
+	const shouldShowTerminal = predefinedCode.language === "python" || predefinedCode.language === "javascript";
 
 	return <div ref={containerRef} className={classNames({"m-5": !IN_IFRAME})}>
 		{!IN_IFRAME && <>
@@ -384,7 +396,7 @@ export const Sandbox = () => {
 			</p>
 		</>}
 		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} appendToChangeLog={appendToChangeLog} />
-		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!(predefinedCode.test)}/>
+		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!("test" in predefinedCode && predefinedCode.test)}/>
 		<OutputTerminal setXTerm={setXTerm} />
 	</div>
 }

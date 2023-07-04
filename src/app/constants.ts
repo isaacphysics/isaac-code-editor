@@ -1,6 +1,7 @@
 import {CodeMirrorTheme, ILanguage, PredefinedCode} from "./types";
 import {pythonCodeMirrorTheme, pythonLanguage} from "./langages/python";
 import {javaScriptCodeMirrorTheme, javaScriptLanguage} from "./langages/javascript";
+import {sqlCodeMirrorTheme} from "./langages/sql";
 
 export const UNDEFINED_CHECKER_RESULT = "UNDEFINED_CHECKER_RESULT";
 
@@ -35,7 +36,8 @@ export const LANGUAGES = new Map<string, ILanguage>([
 
 export const THEMES = new Map<string, CodeMirrorTheme>([
     ["python", pythonCodeMirrorTheme],
-    ["javascript", javaScriptCodeMirrorTheme]
+    ["javascript", javaScriptCodeMirrorTheme],
+    ["sql", sqlCodeMirrorTheme]
 ]);
 
 export const IN_IFRAME = (() => {
@@ -139,4 +141,10 @@ export const DEMO_PYTHON_REGEX_CODE: PredefinedCode = {
           "  print(count)",
     wrapCodeInMain: false,
     test: "endTest()",
+}
+
+export const DEMO_SQL_QUERY: PredefinedCode = {
+    language: "sql",
+    link: "https://github.com/raspberrypilearning/ada-code-samples/raw/main/databases/sports_club.db",
+    code: "PRAGMA database_list;",
 }
