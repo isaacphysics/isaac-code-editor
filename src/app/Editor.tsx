@@ -5,10 +5,10 @@ import {keymap, ViewUpdate} from "@codemirror/view";
 import {Transaction} from "@codemirror/state";
 import {indentWithTab} from "@codemirror/commands";
 import {history} from "@codemirror/history";
-import {CodeMirrorTheme, EditorChange} from "./types";
-import {THEMES} from "./constants";
-import {pythonCodeMirrorTheme} from "./langages/python";
-import {isDefined} from "./services/utils";
+import {CodeMirrorTheme, EditorChange} from "./types.ts";
+import {THEMES} from "./constants.ts";
+import {pythonCodeMirrorTheme} from "./langages/python.ts";
+import {isDefined} from "./services/utils.ts";
 
 interface EditorProps {initCode?: string; language?: string; updateHeight: (editorLines: number) => void; appendToChangeLog: (change: EditorChange) => void}
 

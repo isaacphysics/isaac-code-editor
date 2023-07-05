@@ -1,6 +1,6 @@
-import {noop} from "../services/utils";
-import {UNDEFINED_CHECKER_RESULT} from "../constants";
-import {CodeMirrorTheme, ILanguage, TestCallbacks} from "../types";
+import {noop} from "../services/utils.ts";
+import {UNDEFINED_CHECKER_RESULT} from "../constants.ts";
+import {CodeMirrorTheme, ILanguage, TestCallbacks} from "../types.ts";
 import {EditorView} from "@codemirror/basic-setup";
 import {tags, HighlightStyle} from "@codemirror/highlight";
 import {javascript} from "@codemirror/lang-javascript";

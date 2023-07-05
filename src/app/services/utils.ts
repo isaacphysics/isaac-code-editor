@@ -1,5 +1,5 @@
 import {RefObject, useCallback, useEffect, useRef, useState} from "react";
-import {EditorChange} from "../types";
+// import {EditorChange} from "../types.tsx";
 
 /**
  * This provides a simple interface for post message passing in-between domains.

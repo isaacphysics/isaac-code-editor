@@ -1,8 +1,8 @@
 // @ts-ignore skulpt doesn't have typings
 import Sk from "skulpt"
-import {noop} from "../services/utils";
-import {ERRORS, UNDEFINED_CHECKER_RESULT} from "../constants";
-import {CodeMirrorTheme, ILanguage, TestCallbacks} from "../types";
+import {noop} from "../services/utils.ts";
+import {ERRORS, UNDEFINED_CHECKER_RESULT} from "../constants.ts";
+import {CodeMirrorTheme, ILanguage, TestCallbacks} from "../types.ts";
 import {EditorView} from "@codemirror/basic-setup";
 import {tags, HighlightStyle} from "@codemirror/highlight";
 import {python} from "@codemirror/lang-python";

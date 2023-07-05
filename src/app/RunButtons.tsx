@@ -1,5 +1,5 @@
 import {Button} from "reactstrap";
-import {EXEC_STATE} from "./constants";
+import {EXEC_STATE} from "./constants.ts";
 
 interface RunButtonProps {onRun: () => void, onCheck: () => void, running: string, loaded: boolean, showCheckButton?: boolean}
 

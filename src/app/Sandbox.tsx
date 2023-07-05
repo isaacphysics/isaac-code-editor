@@ -1,8 +1,8 @@
-import {Editor} from "./Editor";
-import {RunButtons} from "./RunButtons";
-import {OutputTerminal, xtermInterface} from "./OutputTerminal";
+import {Editor} from "./Editor.tsx";
+import {RunButtons} from "./RunButtons.tsx";
+import {OutputTerminal, xtermInterface} from "./OutputTerminal.tsx";
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {noop, tryCastString, useIFrameMessages} from "./services/utils";
+import {noop, tryCastString, useIFrameMessages} from "./services/utils.ts";
 import {Terminal} from "xterm";
 import {
 	DEMO_CODE_JS,
@@ -11,11 +11,11 @@ import {
 	IN_IFRAME,
 	LANGUAGES,
 	MESSAGE_TYPES
-} from "./constants";
-import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorChange, EditorSnapshot} from "./types";
+} from "./constants.ts";
+import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorChange, EditorSnapshot} from "./types.ts";
 import classNames from "classnames";
-import {runQuery} from "./langages/sql";
-import {OutputTable} from "./OutputTable";
+import {runQuery} from "./langages/sql.ts";
+import {OutputTable} from "./OutputTable.tsx";
 import {Button} from "reactstrap";
 
 const terminalInitialText = "Ada Code Editor - running Skulpt in xterm.js:\n";

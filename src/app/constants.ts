@@ -1,7 +1,7 @@
-import {CodeMirrorTheme, ILanguage, PredefinedCode} from "./types";
-import {pythonCodeMirrorTheme, pythonLanguage} from "./langages/python";
-import {javaScriptCodeMirrorTheme, javaScriptLanguage} from "./langages/javascript";
-import {sqlCodeMirrorTheme} from "./langages/sql";
+import {CodeMirrorTheme, ILanguage, PredefinedCode} from "./types.ts";
+import {pythonCodeMirrorTheme, pythonLanguage} from "./langages/python.ts";
+import {javaScriptCodeMirrorTheme, javaScriptLanguage} from "./langages/javascript.ts";
+import {sqlCodeMirrorTheme} from "./langages/sql.ts";
 
 export const UNDEFINED_CHECKER_RESULT = "UNDEFINED_CHECKER_RESULT";
 
