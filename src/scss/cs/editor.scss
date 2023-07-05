@@ -53,6 +53,9 @@ $cs-white: #ffffff;
     tr td {
       border: none;
     }
+    td {
+      background-color: transparent !important;
+    }
   }
   .bg-light {
     background-color: $cs-white !important;
