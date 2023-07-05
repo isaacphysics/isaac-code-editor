@@ -212,7 +212,7 @@ export const Sandbox = () => {
 	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>(IN_IFRAME ? {
 		language: "python",
 		code: "# Loading..."
-	} : DEMO_SQL_QUERY);
+	} : DEMO_CODE_PYTHON);
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
