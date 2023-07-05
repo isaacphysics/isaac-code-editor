@@ -8,6 +8,8 @@ const log = console.log;
 const error = console.error;
 
 let sqlite3: Sqlite3Static;
+let db: DatabaseApi;
+let currentDbLink: string;
 
 // system queries
 const QUERIES = {
@@ -53,18 +55,20 @@ const downloadDatabase = (sqlite3: any, link: string): Promise<DatabaseApi> => {
         });
 };
 
-export const runQuery = async (query: string, link?: string) => {
+export const runQuery = async (query: string, link = "NO_DB") => {
     if (!sqlite3) {
         await setupSqlite3();
     }
-    let db: DatabaseApi;
-    if (link) {
-        db = await downloadDatabase(sqlite3, link);
-        db.exec(QUERIES.tables);
-    } else {
-        db = new sqlite3.oo1.DB('/mydb.sqlite3', 'ct') as DatabaseApi;
+    if (currentDbLink !== link) {
+        if (link !== "NO_DB") {
+            db = await downloadDatabase(sqlite3, link);
+            db.exec(QUERIES.tables);
+        } else {
+            db = new sqlite3.oo1.DB('/mydb.sqlite3', 'ct') as DatabaseApi;
+        }
+        currentDbLink = link;
     }
-    console.log('SQLite3 database opened, executing query:', query);
+    // console.log('SQLite3 database opened, executing query:', query);
     let rows: string[][] = [];
     let columnNames: string[] = [];
     // db.exec({

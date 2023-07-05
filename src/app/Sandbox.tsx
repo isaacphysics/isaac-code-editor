@@ -220,6 +220,8 @@ export const Sandbox = () => {
 	const codeRef = useRef<{getCode: () => string | undefined}>(null);
 	const [xterm, setXTerm] = useState<Terminal>();
 
+	const [queryOutput, setQueryOutput] = useState<{rows: string[][]; columnNames: string[]; error?: string}>({rows: [], columnNames: []});
+
 	const [recordLogs, setRecordLogs] = useState<boolean>(false);
 
 	const [changeLog, setChangeLog] = useState<EditorChange[]>([]);
@@ -299,7 +301,8 @@ export const Sandbox = () => {
 				code: tryCastString(receivedData?.code),
 				wrapCodeInMain: receivedData?.wrapCodeInMain ? receivedData?.wrapCodeInMain as boolean : undefined,
 				test: tryCastString(receivedData?.test),
-				language: tryCastString(receivedData?.language) as "python" | "sql" | "javascript",
+				link: tryCastString(receivedData?.link),
+				language: tryCastString(receivedData?.language) as "python" | "sql" | "javascript"
 			}
 			setRecordLogs(receivedData?.logChanges ? receivedData?.logChanges as boolean : false);
 			setPredefinedCode(newPredefCode);
@@ -310,8 +313,9 @@ export const Sandbox = () => {
 			setChangeLog([]);
 			setSnapshotLog([{compiled: false, snapshot: newPredefCode.code ?? "", timestamp: Date.now()}]);
 
-			// Clear any old terminal output
+			// Clear any old terminal and table output
 			xterm && xtermInterface(xterm, () => shouldStopExecution(false)).clear();
+			setQueryOutput({rows: [], columnNames: []});
 
 			// Confirm that the initialisation was successful
 			sendMessage({
@@ -356,8 +360,7 @@ export const Sandbox = () => {
 		xterm && xtermInterface(xterm, () => shouldStopExecution(true)).output(`\x1b[${succeeded ? "32" : "31"};1m` + (isTest ? "> " : "") + message + (succeeded && isTest ? " \u2714" : "") + "\x1b[0m\r\n")
 	}
 
-	const [queryOutput, setQueryOutput] = useState<{rows: string[][]; columnNames: string[]; error?: string}>({rows: [], columnNames: []});
-
+	// The main entry point for running code. It is called by the run button.
 	const callHandleRun = (doChecks?: boolean) => () => {
 		if (!loaded || !xterm) return;
 
@@ -390,6 +393,7 @@ export const Sandbox = () => {
 		}
 	}
 
+	// Only used in the demo
 	const cycleCodeSnippet = () => {
 		if (!loaded) return;
 		if (predefinedCode?.language === "sql") {
