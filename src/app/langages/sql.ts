@@ -2,7 +2,7 @@ import {EditorView} from "@codemirror/basic-setup";
 import {HighlightStyle, tags} from "@codemirror/highlight";
 import {CodeMirrorTheme} from "../types";
 import {sql} from "@codemirror/lang-sql";
-import sqlite3InitModule, {type Sqlite3Static, type DatabaseApi}  from "@sqlite.org/sqlite-wasm";
+import {type Sqlite3Static, type DatabaseApi}  from "@sqlite.org/sqlite-wasm";
 
 const log = console.log;
 const error = console.error;
@@ -21,7 +21,7 @@ const QUERIES = {
 };
 
 const setupSqlite3 = async () => {
-    //const {default: sqlite3InitModule} = await import("@sqlite.org/sqlite-wasm");
+    const {default: sqlite3InitModule} = await import("@sqlite.org/sqlite-wasm");
     return await sqlite3InitModule({
         print: log,
         printErr: error,
