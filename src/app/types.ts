@@ -71,5 +71,3 @@ export interface EditorSnapshot {
     compiled: boolean;
     error?: string;
 }
-
-//declare module "@sqlite.org/sqlite-wasm";
