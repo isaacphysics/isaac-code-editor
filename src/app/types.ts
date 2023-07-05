@@ -8,13 +8,17 @@ export interface Feedback {
     isTest?: boolean;
 }
 
-export interface PredefinedCode {
+export type PredefinedCode = {
     setup?: string;
     code?: string;
     wrapCodeInMain?: boolean;
     test?: string;
-    language?: string;
-}
+    language: "python" | "javascript";
+} | {
+    language: "sql";
+    link?: string;
+    code?: string;
+};
 
 export interface ITerminal {
     input: () => Promise<string>;
@@ -46,8 +50,8 @@ export interface IFileSystem {
 
 export interface CodeMirrorTheme {
     languageSupport: LanguageSupport;
-    theme: Extension;
-    highlightStyle: HighlightStyle;
+    theme?: Extension;
+    highlightStyle?: HighlightStyle;
 }
 
 export interface EditorChange {

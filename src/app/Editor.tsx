@@ -34,15 +34,14 @@ export const Editor = React.forwardRef(({initCode, language, updateHeight, appen
 		}
 
 		const codeMirrorTheme: CodeMirrorTheme = (language ? THEMES.get(language) : undefined) ?? pythonCodeMirrorTheme;
+		const codeMirrorThemeExtensions = Object.values(codeMirrorTheme).filter(isDefined);
 
 		setEditor(new EditorView({
 			state: EditorState.create({
 				doc: initCode,
 				extensions: [
+					...codeMirrorThemeExtensions,
 					basicSetup,
-					codeMirrorTheme.languageSupport,
-					codeMirrorTheme.theme,
-					codeMirrorTheme.highlightStyle,
 					keymap.of([indentWithTab]), // about accessibility: https://codemirror.net/6/examples/tab/
 					history(),
 					EditorView.updateListener.of((v: ViewUpdate) => {

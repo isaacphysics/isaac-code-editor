@@ -25,7 +25,48 @@ $dark-pink-100: #510937;
 $dark-pink-200: #6C0A48;
 $dark-pink-300: #870C5A;
 $focus-blue: #00A8A6;
+// Greyscale
+$cs-black: #000000;
+$cs-jet: #333333;
+$cs-dark-silver: #B9B9B9;
 $cs-silver: #C2C2C2;
+$cs-light-gray: #D6D6D6;
+$cs-list-outline-gray: #EBEBEB;
+$cs-cultured: #F5F5F5;
+$cs-white: #ffffff;
+
+.output-table-container {
+  height: 200px;
+  border-radius: 5px;
+  position: relative;
+  overflow-y: auto;
+  border-collapse: separate !important;
+  border-spacing: 0;
+  thead {
+    background-color: #FFFFFF !important;
+    position: sticky;
+    top: 0;
+    box-shadow: 0 1px 0 $cs-silver;
+  }
+  tbody {
+    border: none !important;
+    tr td {
+      border: none;
+    }
+  }
+  .bg-light {
+    background-color: $cs-white !important;
+  }
+  .bg-dark {
+    background-color: $cs-cultured !important;
+  }
+  .sql-error {
+    background-color: rgba($red, 0.3);
+    font-weight: bold;
+    border-radius: 6px;
+    padding: 8px;
+  }
+}
 
 .run-button, .check-button {
   height: 50px !important;

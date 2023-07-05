@@ -103,9 +103,9 @@ var baseTheme = {
 	brightWhite: '#FFFFFF'
 };
 
-interface OutputTerminalProps {setXTerm: (t: Terminal) => void}
+interface OutputTerminalProps {setXTerm: (t: Terminal) => void; hidden: boolean}
 
-export const OutputTerminal = ({setXTerm}: OutputTerminalProps) => {
+export const OutputTerminal = ({setXTerm, hidden}: OutputTerminalProps) => {
 
 	const xtermDiv = useRef<HTMLDivElement>(null);
 
@@ -156,7 +156,7 @@ export const OutputTerminal = ({setXTerm}: OutputTerminalProps) => {
 		}
 	}, []);
 
-	return <div className={"output-terminal-container"}>
+	return <div hidden={hidden} className={"output-terminal-container"}>
 		<div id={"output-terminal"} className={"w-100 h-100"} ref={xtermDiv} />
 	</div>;
 };

@@ -5,7 +5,8 @@ import React, {useCallback, useEffect, useRef, useState} from "react";
 import {noop, tryCastString, useIFrameMessages} from "./services/utils";
 import {Terminal} from "xterm";
 import {
-	DEMO_CODE_PYTHON,
+	DEMO_CODE_JS,
+	DEMO_CODE_PYTHON, DEMO_SQL_QUERY,
 	EXEC_STATE,
 	IN_IFRAME,
 	LANGUAGES,
@@ -13,6 +14,9 @@ import {
 } from "./constants";
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorChange, EditorSnapshot} from "./types";
 import classNames from "classnames";
+import {runQuery} from "./langages/sql";
+import {OutputTable} from "./OutputTable";
+import {Button} from "reactstrap";
 
 const terminalInitialText = "Ada Code Editor - running Skulpt in xterm.js:\n";
 const uid = window.location.hash.substring(1);
@@ -206,14 +210,17 @@ export const Sandbox = () => {
 	const [running, setRunning] = useState<string>(EXEC_STATE.STOPPED);
 
 	const [predefinedCode, setPredefinedCode] = useState<PredefinedCode>(IN_IFRAME ? {
+		language: "python",
 		code: "# Loading..."
-	} : DEMO_CODE_PYTHON);
+	} : DEMO_SQL_QUERY);
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
 	const containerRef = useRef<HTMLDivElement>(null);
 	const codeRef = useRef<{getCode: () => string | undefined}>(null);
 	const [xterm, setXTerm] = useState<Terminal>();
+
+	const [queryOutput, setQueryOutput] = useState<{rows: string[][]; columnNames: string[]; error?: string}>({rows: [], columnNames: []});
 
 	const [recordLogs, setRecordLogs] = useState<boolean>(false);
 
@@ -294,7 +301,8 @@ export const Sandbox = () => {
 				code: tryCastString(receivedData?.code),
 				wrapCodeInMain: receivedData?.wrapCodeInMain ? receivedData?.wrapCodeInMain as boolean : undefined,
 				test: tryCastString(receivedData?.test),
-				language: tryCastString(receivedData?.language),
+				link: tryCastString(receivedData?.link),
+				language: tryCastString(receivedData?.language) as "python" | "sql" | "javascript"
 			}
 			setRecordLogs(receivedData?.logChanges ? receivedData?.logChanges as boolean : false);
 			setPredefinedCode(newPredefCode);
@@ -305,8 +313,9 @@ export const Sandbox = () => {
 			setChangeLog([]);
 			setSnapshotLog([{compiled: false, snapshot: newPredefCode.code ?? "", timestamp: Date.now()}]);
 
-			// Clear any old terminal output
+			// Clear any old terminal and table output
 			xterm && xtermInterface(xterm, () => shouldStopExecution(false)).clear();
+			setQueryOutput({rows: [], columnNames: []});
 
 			// Confirm that the initialisation was successful
 			sendMessage({
@@ -351,6 +360,7 @@ export const Sandbox = () => {
 		xterm && xtermInterface(xterm, () => shouldStopExecution(true)).output(`\x1b[${succeeded ? "32" : "31"};1m` + (isTest ? "> " : "") + message + (succeeded && isTest ? " \u2714" : "") + "\x1b[0m\r\n")
 	}
 
+	// The main entry point for running code. It is called by the run button.
 	const callHandleRun = (doChecks?: boolean) => () => {
 		if (!loaded || !xterm) return;
 
@@ -359,6 +369,18 @@ export const Sandbox = () => {
 			return;
 		}
 		shouldStop.current = false;
+
+		if (predefinedCode?.language === "sql") {
+			setRunning(EXEC_STATE.RUNNING);
+			const editorCode = codeRef?.current?.getCode() || "";
+			runQuery(editorCode, predefinedCode.link)
+				.then(({rows, columnNames}) => {
+					setQueryOutput({rows, columnNames});
+				}).catch((e) => {
+					setQueryOutput({rows: [], error: `Query failed to execute: ${e}`, columnNames: []});
+				}).then(() => setRunning(EXEC_STATE.STOPPED));
+			return;
+		}
 
 		const language = LANGUAGES.get(predefinedCode?.language ?? "");
 		if (language) {
@@ -371,20 +393,51 @@ export const Sandbox = () => {
 		}
 	}
 
+	// Only used in the demo
+	const cycleCodeSnippet = () => {
+		if (!loaded) return;
+		if (predefinedCode?.language === "sql") {
+			setPredefinedCode(DEMO_CODE_PYTHON);
+		} else if (predefinedCode?.language === "python") {
+			setPredefinedCode(DEMO_CODE_JS);
+		} else {
+			setPredefinedCode(DEMO_SQL_QUERY);
+		}
+	}
+
+	const languageIsSQL = predefinedCode.language === "sql";
+
 	return <div ref={containerRef} className={classNames({"m-5": !IN_IFRAME})}>
 		{!IN_IFRAME && <>
 			<h2>
-				Ada Code Editor Demo
+				Ada Code Editor Demo   <Button size="sm" className="d-inline-block" color={"outline"} onClick={cycleCodeSnippet}>Cycle code snippet</Button>
 			</h2>
-			<p>
-				Below is an implementation of the bubble sort algorithm! It is an example of <b>indefinite</b> and <b>nested</b> iteration. Interact with the code to understand how it works.
-			</p>
-			<p>
-				If you modify the code, you can press the test button to see if it still sorts lists correctly.
-			</p>
+			{languageIsSQL
+				? <>
+					<p>
+						Here is an example of a SQLite query! Interact with the query to understand how it works.<br/>
+						The tables you have access to are listed below:
+						<ul>
+							<li><code>Member</code></li>
+							<li><code>Course</code></li>
+							<li><code>Instructor</code></li>
+							<li><code>Certificate</code></li>
+						</ul>
+					</p>
+				</>
+				: <>
+					<p>
+						Below is an implementation of the bubble sort algorithm! It is an example of <b>indefinite</b> and <b>nested</b> iteration. Interact with the code to understand how it works.
+					</p>
+					<p>
+						If you modify the code, you can press the test button to see if it still sorts lists correctly.
+					</p>
+				</>
+			}
 		</>}
 		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} appendToChangeLog={appendToChangeLog} />
-		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!(predefinedCode.test)}/>
-		<OutputTerminal setXTerm={setXTerm} />
+		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!("test" in predefinedCode && predefinedCode.test)}/>
+		<OutputTerminal setXTerm={setXTerm} hidden={languageIsSQL} />
+		{languageIsSQL && <OutputTable rows={queryOutput.rows} error={queryOutput.error} columnNames={queryOutput.columnNames}/>}
 	</div>
 }
