@@ -35,6 +35,13 @@ $cs-list-outline-gray: #EBEBEB;
 $cs-cultured: #F5F5F5;
 $cs-white: #ffffff;
 
+.sql-message {
+  background-color: $cs-cultured;
+  font-weight: bold;
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 15px;
+}
 .output-table-container {
   height: 200px;
   border-radius: 5px;

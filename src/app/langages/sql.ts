@@ -94,7 +94,8 @@ export const runQuery = async (query: string, link = "NO_DB") => {
         resultRows: rows,
         columnNames: columnNames,
     });
-    return {rows, columnNames};
+    const changes = db.changes();
+    return {rows, columnNames, changes};
 };
 
 export const sqlTheme = EditorView.theme({

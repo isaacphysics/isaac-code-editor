@@ -220,7 +220,7 @@ export const Sandbox = () => {
 	const codeRef = useRef<{getCode: () => string | undefined}>(null);
 	const [xterm, setXTerm] = useState<Terminal>();
 
-	const [queryOutput, setQueryOutput] = useState<{rows: string[][]; columnNames: string[]; error?: string}>({rows: [], columnNames: []});
+	const [queryOutput, setQueryOutput] = useState<{rows: string[][]; columnNames: string[]; error?: string; message?: string}>({rows: [], columnNames: []});
 
 	const [recordLogs, setRecordLogs] = useState<boolean>(false);
 
@@ -374,10 +374,13 @@ export const Sandbox = () => {
 			setRunning(EXEC_STATE.RUNNING);
 			const editorCode = codeRef?.current?.getCode() || "";
 			runQuery(editorCode, predefinedCode.link)
-				.then(({rows, columnNames}) => {
-					setQueryOutput({rows, columnNames});
+				.then(({rows, columnNames, changes}) => {
+					const message = rows.length === 0
+						? `Query succeeded, ${changes} row${changes === 1 ? "" : "s"} affected`
+						: `Query returned ${rows.length} row${rows.length === 1 ? "" : "s"}`;
+					setQueryOutput({rows, columnNames, message});
 				}).catch((e) => {
-					setQueryOutput({rows: [], error: `Query failed to execute: ${e}`, columnNames: []});
+					setQueryOutput({rows: [], error: e.toString(), columnNames: []});
 				}).then(() => setRunning(EXEC_STATE.STOPPED));
 			return;
 		}
@@ -438,6 +441,6 @@ export const Sandbox = () => {
 		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} appendToChangeLog={appendToChangeLog} />
 		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!("test" in predefinedCode && predefinedCode.test)}/>
 		<OutputTerminal setXTerm={setXTerm} hidden={languageIsSQL} />
-		{languageIsSQL && <OutputTable rows={queryOutput.rows} error={queryOutput.error} columnNames={queryOutput.columnNames}/>}
+		{languageIsSQL && <OutputTable rows={queryOutput.rows} error={queryOutput.error} columnNames={queryOutput.columnNames} message={queryOutput.message}/>}
 	</div>
 }
