@@ -205,6 +205,7 @@ const buttonHeightAndYMargin = 50 + 16;
 const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + buttonHeightAndYMargin;
 const terminalHeight = 200;
 const sqlExtraOutputHeight = 58;
+let extraHeight = 0;
 
 export const Sandbox = () => {
 	const [loaded, setLoaded] = useState<boolean>(!IN_IFRAME);
@@ -239,22 +240,15 @@ export const Sandbox = () => {
 
 	const [lastEditorLines, setLastEditorLines] = useState<number>();
 
-	const updateHeight = useCallback((editorLines?: number, predefinedCodeOverride?: PredefinedCode, queryOutputOverride?: {message?: string; columnNames: string[]; rows: string[][]; error?: string}) => {
+	const updateHeight = useCallback((editorLines?: number) => {
 		if (containerRef?.current) {
 			setLastEditorLines(editorLines);
-			const predefCode = predefinedCodeOverride ?? predefinedCode;
-			const queryOpt = queryOutputOverride ?? queryOutput;
-			const extraHeight = predefCode?.language === "sql"
-				?  queryOpt?.error
-					? 58
-					: (queryOpt?.message ? sqlExtraOutputHeight : 0) + ((queryOpt?.rows.length > 0) ? terminalHeight : 0)
-				: terminalHeight;
 			sendMessage({
 				type: MESSAGE_TYPES.RESIZE,
 				height: heightOfEditorLine * (Math.min(editorLines ?? 11, 11) + 1) + nonVariableHeight + extraHeight
 			});
 		}
-	}, [containerRef, sendMessage, predefinedCode, queryOutput]);
+	}, [containerRef, sendMessage]);
 
 	const shouldStop = useRef<boolean>(false);
 
@@ -319,7 +313,8 @@ export const Sandbox = () => {
 			setRecordLogs(receivedData?.logChanges ? receivedData?.logChanges as boolean : false);
 			setPredefinedCode(newPredefCode);
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
-			updateHeight(numberOfLines, newPredefCode);
+			extraHeight = newPredefCode.language === "sql" ? 0 : terminalHeight;
+			updateHeight(numberOfLines);
 			setLoaded(true);
 			// Clear any irrelevant log data, and make an initial snapshot
 			setChangeLog([]);
@@ -391,10 +386,12 @@ export const Sandbox = () => {
 						? `Query succeeded, ${changes} row${changes === 1 ? "" : "s"} affected`
 						: `Query returned ${rows.length} row${rows.length === 1 ? "" : "s"}`;
 					setQueryOutput({rows, columnNames, message});
-					updateHeight(lastEditorLines, predefinedCode, {rows, columnNames, message});
+					extraHeight = (message ? sqlExtraOutputHeight : 0) + (rows.length > 0 ? terminalHeight : 0);
+					updateHeight(lastEditorLines);
 				}).catch((e) => {
 					setQueryOutput({rows: [], error: e.toString(), columnNames: []});
-					updateHeight(lastEditorLines, predefinedCode, {rows: [], error: e.toString(), columnNames: []});
+					extraHeight = sqlExtraOutputHeight;
+					updateHeight(lastEditorLines);
 				}).then(() => setRunning(EXEC_STATE.STOPPED));
 			return;
 		}
