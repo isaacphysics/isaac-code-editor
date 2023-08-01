@@ -44,6 +44,9 @@ $cs-white: #ffffff;
 }
 .output-table-container {
   height: 200px;
+  &.no-message {
+    height: 258px !important;
+  }
   border-radius: 5px;
   position: relative;
   overflow-y: auto;

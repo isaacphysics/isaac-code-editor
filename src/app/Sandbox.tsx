@@ -204,6 +204,7 @@ const editorYPaddingBorderAndMargin = 23 + 2 + 16;
 const buttonHeightAndYMargin = 50 + 16;
 const terminalHeight = 200;
 const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + buttonHeightAndYMargin + terminalHeight;
+const sqlExtraOutputHeight = 58;
 
 export const Sandbox = () => {
 	const [loaded, setLoaded] = useState<boolean>(!IN_IFRAME);
@@ -213,6 +214,7 @@ export const Sandbox = () => {
 		language: "python",
 		code: "# Loading..."
 	} : DEMO_CODE_PYTHON);
+	const languageIsSQL = predefinedCode.language === "sql";
 
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
@@ -235,14 +237,14 @@ export const Sandbox = () => {
 		setSnapshotLog((current) => (current.concat([snapshot])));
 	};
 
-	const updateHeight = useCallback((editorLines?: number) => {
+	const updateHeight = useCallback((editorLines?: number, languageOverride?: PredefinedCode['language']) => {
 		if (containerRef?.current) {
 			sendMessage({
 				type: MESSAGE_TYPES.RESIZE,
-				height: heightOfEditorLine * (Math.min(editorLines ?? 11, 11) + 1) + nonVariableHeight
+				height: heightOfEditorLine * (Math.min(editorLines ?? 11, 11) + 1) + nonVariableHeight + ((languageOverride ?? predefinedCode.language) === "sql" ? sqlExtraOutputHeight : 0)
 			});
 		}
-	}, [containerRef, sendMessage]);
+	}, [containerRef, sendMessage, predefinedCode.language]);
 
 	const shouldStop = useRef<boolean>(false);
 
@@ -307,7 +309,7 @@ export const Sandbox = () => {
 			setRecordLogs(receivedData?.logChanges ? receivedData?.logChanges as boolean : false);
 			setPredefinedCode(newPredefCode);
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
-			updateHeight(numberOfLines);
+			updateHeight(numberOfLines, newPredefCode.language);
 			setLoaded(true);
 			// Clear any irrelevant log data, and make an initial snapshot
 			setChangeLog([]);
@@ -407,8 +409,6 @@ export const Sandbox = () => {
 			setPredefinedCode(DEMO_SQL_QUERY);
 		}
 	}
-
-	const languageIsSQL = predefinedCode.language === "sql";
 
 	return <div ref={containerRef} className={classNames({"m-5": !IN_IFRAME})}>
 		{!IN_IFRAME && <>

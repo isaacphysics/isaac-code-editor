@@ -1,4 +1,5 @@
 import {Table} from "reactstrap";
+import classNames from "classnames";
 
 interface OutputTableProps {
     rows: string[][];
@@ -10,7 +11,7 @@ interface OutputTableProps {
 export const OutputTable = ({rows, columnNames, error, message}: OutputTableProps) => {
     return <>
         {message && <div className={"sql-message"}>{message}</div>}
-        <div className="output-table-container">
+        <div className={classNames("output-table-container", {"no-message": !message})}>
             {error
                 ? <div className={"sql-error"}>{error}</div>
                 : <Table>
