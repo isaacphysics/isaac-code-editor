@@ -301,7 +301,7 @@ export const Sandbox = () => {
 				code: tryCastString(receivedData?.code),
 				wrapCodeInMain: receivedData?.wrapCodeInMain ? receivedData?.wrapCodeInMain as boolean : undefined,
 				test: tryCastString(receivedData?.test),
-				link: tryCastString(receivedData?.link),
+				dataUrl: tryCastString(receivedData?.dataUrl),
 				language: tryCastString(receivedData?.language) as "python" | "sql" | "javascript"
 			}
 			setRecordLogs(receivedData?.logChanges ? receivedData?.logChanges as boolean : false);
@@ -373,7 +373,7 @@ export const Sandbox = () => {
 		if (predefinedCode?.language === "sql") {
 			setRunning(EXEC_STATE.RUNNING);
 			const editorCode = codeRef?.current?.getCode() || "";
-			runQuery(editorCode, predefinedCode.link)
+			runQuery(editorCode, predefinedCode.dataUrl)
 				.then(({rows, columnNames, changes}) => {
 					const message = rows.length === 0
 						? `Query succeeded, ${changes} row${changes === 1 ? "" : "s"} affected`

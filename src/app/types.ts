@@ -16,7 +16,7 @@ export type PredefinedCode = {
     language: "python" | "javascript";
 } | {
     language: "sql";
-    link?: string;
+    dataUrl?: string;
     code?: string;
 };
 
