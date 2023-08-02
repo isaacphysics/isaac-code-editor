@@ -145,6 +145,6 @@ export const DEMO_PYTHON_REGEX_CODE: PredefinedCode = {
 
 export const DEMO_SQL_QUERY: PredefinedCode = {
     language: "sql",
-    dataUrl: "https://cdn.isaacphysics.org/ada/example_databases/sports_club.sqlite",
+    dataUrl: "https://cdn.adacomputerscience.org/ada/example_databases/sports_club.sqlite",
     code: "SELECT FirstName, LastName, CourseCode, AssessmentDate, InstructorID FROM Certificate INNER JOIN Member on Member.MemberId = Certificate.MemberId;",
 }
