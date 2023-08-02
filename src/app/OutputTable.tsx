@@ -12,7 +12,7 @@ interface OutputTableProps {
 export const OutputTable = ({rows, columnNames, error, message, fullscreen}: OutputTableProps) => {
     return <>
         {message && <div className={"sql-message"}>{message}</div>}
-        <div className={classNames("output-table-container", {"no-message": !message, "fullscreen": fullscreen})}>
+        <div className={classNames("output-table-container", {"no-message": !message && !fullscreen, "fullscreen": fullscreen})}>
             {error
                 ? <div className={"sql-error"}>{error}</div>
                 : <Table>

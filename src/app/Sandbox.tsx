@@ -194,20 +194,6 @@ const handleRun = (terminal: ITerminal,
 	}
 };
 
-// TODO Find a better way to do this
-// Predefined heights for iframe height calculation
-// This is horrible but is needed so that the parent window can frame the editor properly
-// If the style changes at all this needs recalculating!
-const heightOfEditorLine = 19.6;
-const cmContentYPadding = 8;
-const editorYPaddingBorderAndMargin = 23 + 2 + 16;
-const buttonHeightAndYMargin = 50 + 16;
-const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + buttonHeightAndYMargin;
-const terminalHeight = 200;
-const sqlExtraOutputHeight = 58;
-let globalExtraHeight = 0;
-let globalFullscreen = false;
-
 export const Sandbox = () => {
 	const [loaded, setLoaded] = useState<boolean>(!IN_IFRAME);
 	const [running, setRunning] = useState<string>(EXEC_STATE.STOPPED);
@@ -240,20 +226,18 @@ export const Sandbox = () => {
 		setSnapshotLog((current) => (current.concat([snapshot])));
 	};
 
-	const [lastEditorLines, setLastEditorLines] = useState<number>();
-
-	// We have to use globals and refs in here because of how the CodeMirror editor is set up
-	const updateHeight = useCallback((editorLines?: number) => {
-		if (containerRef?.current) {
-			setLastEditorLines(editorLines);
+	// Create a resize observer to update the height of the iframe when containerRef.current changes size
+	useEffect(() => {
+		if (!containerRef.current || !loaded) return;
+		const resizeObserver = new ResizeObserver(() => {
 			sendMessage({
 				type: MESSAGE_TYPES.RESIZE,
-				height: globalFullscreen
-					? containerRef.current.scrollHeight + 1
-					: heightOfEditorLine * (Math.min(editorLines ?? 11, 11) + 1) + nonVariableHeight + globalExtraHeight
+				height: containerRef.current?.scrollHeight ?? 0
 			});
-		}
-	}, [containerRef, sendMessage]);
+		});
+		resizeObserver.observe(containerRef.current);
+		return () => resizeObserver.disconnect();
+	}, [loaded]);
 
 	const shouldStop = useRef<boolean>(false);
 
@@ -318,12 +302,7 @@ export const Sandbox = () => {
 			setRecordLogs(receivedData?.logChanges ? receivedData?.logChanges as boolean : false);
 			setPredefinedCode(newPredefCode);
 
-			// Resize the editor iframe to fit the code and UI
-			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
-			globalFullscreen = receivedData?.fullscreen ? receivedData?.fullscreen as boolean : false;
-			setIsFullscreen(globalFullscreen);
-			globalExtraHeight = newPredefCode.language === "sql" ? 0 : terminalHeight;
-			updateHeight(numberOfLines);
+			setIsFullscreen(receivedData?.fullscreen ? receivedData?.fullscreen as boolean : false);
 
 			setLoaded(true);
 			// Clear any irrelevant log data, and make an initial snapshot
@@ -396,12 +375,8 @@ export const Sandbox = () => {
 						? `Query succeeded, ${changes} row${changes === 1 ? "" : "s"} affected`
 						: `Query returned ${rows.length} row${rows.length === 1 ? "" : "s"}`;
 					setQueryOutput({rows, columnNames, message});
-					globalExtraHeight = (message ? sqlExtraOutputHeight : 0) + (rows.length > 0 ? terminalHeight : 0);
-					updateHeight(lastEditorLines);
 				}).catch((e) => {
 					setQueryOutput({rows: [], error: e.toString(), columnNames: []});
-					globalExtraHeight = sqlExtraOutputHeight;
-					updateHeight(lastEditorLines);
 				}).then(() => setRunning(EXEC_STATE.STOPPED));
 			return;
 		}
@@ -457,7 +432,7 @@ export const Sandbox = () => {
 				</>
 			}
 		</>}
-		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} appendToChangeLog={appendToChangeLog} />
+		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} appendToChangeLog={appendToChangeLog} />
 		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!("test" in predefinedCode && predefinedCode.test)}/>
 		<OutputTerminal setXTerm={setXTerm} hidden={languageIsSQL} />
 		{languageIsSQL && <OutputTable rows={queryOutput.rows} error={queryOutput.error} columnNames={queryOutput.columnNames} message={queryOutput.message} fullscreen={isFullscreen} />}

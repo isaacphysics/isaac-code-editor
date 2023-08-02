@@ -10,9 +10,9 @@ import {THEMES} from "./constants.ts";
 import {pythonCodeMirrorTheme} from "./langages/python.ts";
 import {isDefined} from "./services/utils.ts";
 
-interface EditorProps {initCode?: string; language?: string; updateHeight: (editorLines: number) => void; appendToChangeLog: (change: EditorChange) => void}
+interface EditorProps {initCode?: string; language?: string; appendToChangeLog: (change: EditorChange) => void}
 
-export const Editor = React.forwardRef(({initCode, language, updateHeight, appendToChangeLog}: EditorProps, ref: ForwardedRef<{getCode: () => string | undefined}>) => {
+export const Editor = React.forwardRef(({initCode, language, appendToChangeLog}: EditorProps, ref: ForwardedRef<{getCode: () => string | undefined}>) => {
 
 	const [editor, setEditor] = useState<EditorView | null>(null);
 
@@ -66,10 +66,6 @@ export const Editor = React.forwardRef(({initCode, language, updateHeight, appen
 								annotations,
 								selections: v.state.selection.toJSON().ranges
 							});
-						}
-						if (v.startState.doc.lines !== v.state.doc.lines) {
-							// Send a height update if the number of lines change
-							updateHeight(v.state.doc.lines);
 						}
 					})
 				]

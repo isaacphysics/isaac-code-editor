@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<!-- Example HTML file that embeds the editor in a basic webpage, can be copied and adapted easily -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL editor</title>
+</head>
+<body>
+    <style>
+        .editor {
+            width: 100%;
+            height: 100%;
+            resize: none;
+            border: none;
+            overflow: hidden;
+            background-color: transparent;
+        }
+        #ide {
+            overflow: hidden;
+        }
+    </style>
+    <div id="ide" style="height: 0; display: none">
+        <iframe scrolling="no" allowTransparency="true" id="code-editor" title="Code Sandbox" class="editor" allow="clipboard-read; clipboard-write"></iframe>
+    </div>
+</body>
+<script>
+    function makeid(length) {
+        var result           = '';
+        var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        var charactersLength = characters.length;
+        for ( var i = 0; i < length; i++ ) {
+            result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        }
+        return result;
+    }
+
+    // Iframe message passing code ============================================================
+    //const CODE_EDITOR_BASE_URL = "https://code-editor.ada-cs.org"; // or "http://localhost:3000" for local dev
+    const CODE_EDITOR_BASE_URL = "http://localhost:3000";
+    const iFrame = document.getElementById("code-editor");
+    const iFrameContainer = document.getElementById("ide"); // Change styles of this
+    let targetDomainSource;
+    let targetDomainOrigin;
+    let uid = makeid(10);
+    iFrame.setAttribute("onload", "setupFrame()");
+    iFrame.setAttribute("src", CODE_EDITOR_BASE_URL + "/#" + uid);
+
+    function sendMessage(obj) {
+        obj.uid = uid;
+        if (iFrame instanceof HTMLElement && iFrame.contentWindow) {
+            iFrame.contentWindow.postMessage(obj, iFrame.src);
+        } else if (undefined !== targetDomainSource && undefined !== targetDomainOrigin) {
+            targetDomainSource.postMessage(obj, targetDomainOrigin);
+        } else {
+            // This should only happen if undefined foreignDomain and no message is received yet
+            console.log("If foreignDomain is undefined, this can only reply to messages (i.e. can send only after the first message has been received)");
+        }
+    }
+
+    function handleReceive(e) {
+        if (e.origin === window.origin) return;
+
+        // Make sure that the data is what we expect, and that it has a correct uid
+        if (!(typeof e.data === 'object' && e.data !== null && !Array.isArray(e.data) && e.data.hasOwnProperty('uid')
+            && e.data.uid === uid)) {
+            return;
+        }
+
+        if (e.data.hasOwnProperty('type')) {
+            if (!targetDomainSource) {
+                targetDomainSource = e.source;
+                targetDomainOrigin = e.origin;
+            }
+            if (replyCallback && e.source) {
+                const r = replyCallback(e.data);
+                if (r && typeof r === "object") {
+                    e.source.postMessage(r);
+                }
+            }
+        }
+    }
+    window.addEventListener("message", handleReceive);
+    // ========================================================================================
+
+    // The function that handles any data returned from the code editor.
+    // If you return an object, it will be sent to the editor. Return undefined/null/void to not send a reply.
+    function replyCallback(data) {
+        switch (data.type) {
+            case "confirmInitialised":
+                iFrameContainer.style.display = "block";
+                break;
+            case "resize":
+                if (typeof data.height === "number") {
+                    iFrameContainer.setAttribute("style", `height: ${data.height}px`);
+                }
+                break;
+        }
+    }
+
+    function setupFrame() {
+        sendMessage({
+            type: "initialise",
+            language: "sql",
+            dataUrl: "https://cdn.isaacphysics.org/ada/example_databases/sports_club.sqlite",
+            code: "SELECT FirstName, LastName, CourseCode, AssessmentDate, InstructorID FROM Certificate INNER JOIN Member on Member.MemberId = Certificate.MemberId;",
+            fullscreen: true
+        });
+    }
+</script>
+</html>
