@@ -206,6 +206,7 @@ const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + bu
 const terminalHeight = 200;
 const sqlExtraOutputHeight = 58;
 let extraHeight = 0;
+let fullscreen = false;
 
 export const Sandbox = () => {
 	const [loaded, setLoaded] = useState<boolean>(!IN_IFRAME);
@@ -245,7 +246,9 @@ export const Sandbox = () => {
 			setLastEditorLines(editorLines);
 			sendMessage({
 				type: MESSAGE_TYPES.RESIZE,
-				height: heightOfEditorLine * (Math.min(editorLines ?? 11, 11) + 1) + nonVariableHeight + extraHeight
+				height: fullscreen
+					? containerRef.current.scrollHeight + 1
+					: heightOfEditorLine * (Math.min(editorLines ?? 11, 11) + 1) + nonVariableHeight + extraHeight
 			});
 		}
 	}, [containerRef, sendMessage]);
@@ -312,9 +315,13 @@ export const Sandbox = () => {
 			}
 			setRecordLogs(receivedData?.logChanges ? receivedData?.logChanges as boolean : false);
 			setPredefinedCode(newPredefCode);
+			
+			// Resize the editor iframe to fit the code and UI
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
+			fullscreen = receivedData?.fullscreen ? receivedData?.fullscreen as boolean : false;
 			extraHeight = newPredefCode.language === "sql" ? 0 : terminalHeight;
 			updateHeight(numberOfLines);
+
 			setLoaded(true);
 			// Clear any irrelevant log data, and make an initial snapshot
 			setChangeLog([]);
