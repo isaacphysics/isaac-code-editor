@@ -205,8 +205,8 @@ const buttonHeightAndYMargin = 50 + 16;
 const nonVariableHeight = cmContentYPadding + editorYPaddingBorderAndMargin + buttonHeightAndYMargin;
 const terminalHeight = 200;
 const sqlExtraOutputHeight = 58;
-let extraHeight = 0;
-let fullscreen = false;
+let globalExtraHeight = 0;
+let globalFullscreen = false;
 
 export const Sandbox = () => {
 	const [loaded, setLoaded] = useState<boolean>(!IN_IFRAME);
@@ -223,6 +223,7 @@ export const Sandbox = () => {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const codeRef = useRef<{getCode: () => string | undefined}>(null);
 	const [xterm, setXTerm] = useState<Terminal>();
+	const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
 	const [queryOutput, setQueryOutput] = useState<{rows: string[][]; columnNames: string[]; error?: string; message?: string}>({rows: [], columnNames: []});
 
@@ -241,14 +242,15 @@ export const Sandbox = () => {
 
 	const [lastEditorLines, setLastEditorLines] = useState<number>();
 
+	// We have to use globals and refs in here because of how the CodeMirror editor is set up
 	const updateHeight = useCallback((editorLines?: number) => {
 		if (containerRef?.current) {
 			setLastEditorLines(editorLines);
 			sendMessage({
 				type: MESSAGE_TYPES.RESIZE,
-				height: fullscreen
+				height: globalFullscreen
 					? containerRef.current.scrollHeight + 1
-					: heightOfEditorLine * (Math.min(editorLines ?? 11, 11) + 1) + nonVariableHeight + extraHeight
+					: heightOfEditorLine * (Math.min(editorLines ?? 11, 11) + 1) + nonVariableHeight + globalExtraHeight
 			});
 		}
 	}, [containerRef, sendMessage]);
@@ -315,11 +317,12 @@ export const Sandbox = () => {
 			}
 			setRecordLogs(receivedData?.logChanges ? receivedData?.logChanges as boolean : false);
 			setPredefinedCode(newPredefCode);
-			
+
 			// Resize the editor iframe to fit the code and UI
 			const numberOfLines = receivedData?.code ? (receivedData?.code as string).split(/\r\n|\r|\n/).length : 1;
-			fullscreen = receivedData?.fullscreen ? receivedData?.fullscreen as boolean : false;
-			extraHeight = newPredefCode.language === "sql" ? 0 : terminalHeight;
+			globalFullscreen = receivedData?.fullscreen ? receivedData?.fullscreen as boolean : false;
+			setIsFullscreen(globalFullscreen);
+			globalExtraHeight = newPredefCode.language === "sql" ? 0 : terminalHeight;
 			updateHeight(numberOfLines);
 
 			setLoaded(true);
@@ -393,11 +396,11 @@ export const Sandbox = () => {
 						? `Query succeeded, ${changes} row${changes === 1 ? "" : "s"} affected`
 						: `Query returned ${rows.length} row${rows.length === 1 ? "" : "s"}`;
 					setQueryOutput({rows, columnNames, message});
-					extraHeight = (message ? sqlExtraOutputHeight : 0) + (rows.length > 0 ? terminalHeight : 0);
+					globalExtraHeight = (message ? sqlExtraOutputHeight : 0) + (rows.length > 0 ? terminalHeight : 0);
 					updateHeight(lastEditorLines);
 				}).catch((e) => {
 					setQueryOutput({rows: [], error: e.toString(), columnNames: []});
-					extraHeight = sqlExtraOutputHeight;
+					globalExtraHeight = sqlExtraOutputHeight;
 					updateHeight(lastEditorLines);
 				}).then(() => setRunning(EXEC_STATE.STOPPED));
 			return;
@@ -457,6 +460,6 @@ export const Sandbox = () => {
 		<Editor initCode={predefinedCode.code} language={predefinedCode.language} ref={codeRef} updateHeight={updateHeight} appendToChangeLog={appendToChangeLog} />
 		<RunButtons running={running} loaded={loaded} onRun={callHandleRun(false)} onCheck={callHandleRun(true)} showCheckButton={!!("test" in predefinedCode && predefinedCode.test)}/>
 		<OutputTerminal setXTerm={setXTerm} hidden={languageIsSQL} />
-		{languageIsSQL && <OutputTable rows={queryOutput.rows} error={queryOutput.error} columnNames={queryOutput.columnNames} message={queryOutput.message}/>}
+		{languageIsSQL && <OutputTable rows={queryOutput.rows} error={queryOutput.error} columnNames={queryOutput.columnNames} message={queryOutput.message} fullscreen={isFullscreen} />}
 	</div>
 }

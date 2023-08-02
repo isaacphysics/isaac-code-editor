@@ -47,6 +47,9 @@ $cs-white: #ffffff;
   &.no-message {
     height: 258px !important;
   }
+  &.fullscreen {
+    height: auto !important;
+  }
   border-radius: 5px;
   position: relative;
   overflow-y: auto;

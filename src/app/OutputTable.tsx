@@ -6,12 +6,13 @@ interface OutputTableProps {
     columnNames: string[];
     error?: string;
     message?: string;
+    fullscreen?: boolean;
 }
 
-export const OutputTable = ({rows, columnNames, error, message}: OutputTableProps) => {
+export const OutputTable = ({rows, columnNames, error, message, fullscreen}: OutputTableProps) => {
     return <>
         {message && <div className={"sql-message"}>{message}</div>}
-        <div className={classNames("output-table-container", {"no-message": !message})}>
+        <div className={classNames("output-table-container", {"no-message": !message, "fullscreen": fullscreen})}>
             {error
                 ? <div className={"sql-error"}>{error}</div>
                 : <Table>
