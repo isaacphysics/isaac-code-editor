@@ -1,8 +1,9 @@
-FROM node:16 AS build
+FROM node:18 AS build
 
 WORKDIR /editor
 
 COPY package.json /editor/package.json
+COPY tsconfig.json /editor/tsconfig.json
 RUN npm i
 
 COPY public /editor/public

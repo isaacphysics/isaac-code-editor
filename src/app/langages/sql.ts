@@ -1,6 +1,6 @@
 import {EditorView} from "@codemirror/basic-setup";
 import {HighlightStyle, tags} from "@codemirror/highlight";
-import {CodeMirrorTheme} from "../types.ts";
+import {CodeMirrorTheme} from "../types";
 import {sql} from "@codemirror/lang-sql";
 import {type Sqlite3Static, type DatabaseApi}  from "@sqlite.org/sqlite-wasm";
 

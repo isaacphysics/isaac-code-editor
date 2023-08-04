@@ -2,8 +2,8 @@ import React, {useEffect, useRef} from "react";
 import {Terminal} from "xterm";
 import {FitAddon} from "xterm-addon-fit";
 import {WebglAddon} from "xterm-addon-webgl"
-import {ITerminal} from "./types.ts";
-import {ERRORS} from "./constants.ts";
+import {ITerminal} from "./types";
+import {ERRORS} from "./constants";
 
 /**
  * Handling a single input character to the xterm terminal - will recurse, building up a string

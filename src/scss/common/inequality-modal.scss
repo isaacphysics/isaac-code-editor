@@ -426,7 +426,7 @@
 // TODO: Find a better way to unify this and the identical above (around line 137)
 // ... yeah, this is going to be a lost cause.
 #moving-menu-item {
-    position: relative; // this will become absolute in InequalityModal.tsx
+    position: relative; // this will become absolute in InequalityModal
     display: inline-block;
     box-sizing: content-box;
     padding: 8px;
