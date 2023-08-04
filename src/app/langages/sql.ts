@@ -18,6 +18,7 @@ const QUERIES = {
       where type = 'table'
         and name not like 'sqlite_%'
         and name not like 'sqlean_%'`,
+    foreignKeysOn: "PRAGMA foreign_keys = ON"
 };
 
 const setupSqlite3 = async () => {
@@ -62,10 +63,10 @@ export const runQuery = async (query: string, link = "NO_DB") => {
     if (currentDbLink !== link) {
         if (link !== "NO_DB") {
             db = await downloadDatabase(sqlite3, link);
-            db.exec(QUERIES.tables);
         } else {
             db = new sqlite3.oo1.DB('/mydb.sqlite3', 'ct') as DatabaseApi;
         }
+        db.exec(QUERIES.foreignKeysOn);
         currentDbLink = link;
     }
     // console.log('SQLite3 database opened, executing query:', query);
