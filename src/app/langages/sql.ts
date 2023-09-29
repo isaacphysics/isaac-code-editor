@@ -100,6 +100,9 @@ export const runQuery = async (query: string, link = "NO_DB") => {
 };
 
 export const sqlTheme = EditorView.theme({
+    ".cm-content": {
+        minHeight: "10ex"
+    },
     ".cm-gutters": {
         backgroundColor: "#FFFFFF"
     },
