@@ -43,9 +43,9 @@ $cs-white: #ffffff;
   margin-bottom: 15px;
 }
 .output-table-container {
-  height: 200px;
+  max-height: 300px;
   &.no-message {
-    height: 258px !important;
+    max-height: 258px !important;
   }
   &.fullscreen {
     height: 100% !important;
