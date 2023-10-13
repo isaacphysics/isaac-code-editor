@@ -1,8 +1,9 @@
 import {EditorView} from "@codemirror/basic-setup";
 import {HighlightStyle, tags} from "@codemirror/highlight";
 import {CodeMirrorTheme} from "../types";
-import {sql} from "@codemirror/lang-sql";
+import {StandardSQL} from "@codemirror/lang-sql";
 import {type Sqlite3Static, type DatabaseApi}  from "@sqlite.org/sqlite-wasm";
+import {LanguageSupport} from "@codemirror/language";
 
 const log = console.log;
 const error = console.error;
@@ -127,7 +128,7 @@ export const sqlHighlightStyle = HighlightStyle.define([
 ]);
 
 export const sqlCodeMirrorTheme: CodeMirrorTheme = {
-    languageSupport: sql(),
+    languageSupport: new LanguageSupport(StandardSQL.language, []),
     theme: sqlTheme,
     highlightStyle: sqlHighlightStyle
 }
