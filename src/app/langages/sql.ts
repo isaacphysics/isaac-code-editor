@@ -1,9 +1,9 @@
 import {EditorView} from "@codemirror/basic-setup";
 import {HighlightStyle, tags} from "@codemirror/highlight";
-import {CodeMirrorTheme} from "../types";
 import {StandardSQL} from "@codemirror/lang-sql";
-import {type Sqlite3Static, type DatabaseApi}  from "@sqlite.org/sqlite-wasm";
 import {LanguageSupport} from "@codemirror/language";
+import {CodeMirrorTheme} from "../types";
+import {type DatabaseApi, type Sqlite3Static} from "@sqlite.org/sqlite-wasm";
 
 const log = console.log;
 const error = console.error;
