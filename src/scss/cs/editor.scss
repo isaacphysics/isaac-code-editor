@@ -4,7 +4,9 @@
   padding: 11.5px;
   //font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   //font-size: 0.875rem;
-  max-height: 15.4rem;
+  min-height: 5rem;
+  height: 15.4rem;
+  resize: vertical;
 
   .cm-editor {
     outline: none !important;
