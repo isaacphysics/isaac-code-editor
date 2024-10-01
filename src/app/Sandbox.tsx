@@ -14,7 +14,7 @@ import {
 } from "./constants";
 import {ITerminal, TestCallbacks, Feedback, PredefinedCode, ILanguage, EditorChange, EditorSnapshot} from "./types";
 import classNames from "classnames";
-import {runQuery} from "./langages/sql";
+import {runQuery} from "./languages/sql";
 import {OutputTable} from "./OutputTable";
 import {Button} from "reactstrap";
 

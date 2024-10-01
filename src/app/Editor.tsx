@@ -6,7 +6,7 @@ import {EditorState, Transaction} from "@codemirror/state";
 import {history, indentWithTab} from "@codemirror/commands";
 import {CodeMirrorTheme, EditorChange} from "./types";
 import {THEMES} from "./constants";
-import {pythonCodeMirrorTheme} from "./langages/python";
+import {pythonCodeMirrorTheme} from "./languages/python";
 import {isDefined} from "./services/utils";
 
 interface EditorProps {initCode?: string; language?: string; appendToChangeLog: (change: EditorChange) => void}
