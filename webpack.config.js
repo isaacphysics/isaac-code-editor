@@ -10,7 +10,7 @@ const config = {
     entry: './src/index.tsx',
     output: {
         clean: true,
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(__dirname, 'build'),
         publicPath: '/',
     },
     devServer: {
