@@ -3,9 +3,10 @@ import Sk from "skulpt"
 import {noop} from "../services/utils";
 import {ERRORS, UNDEFINED_CHECKER_RESULT} from "../constants";
 import {CodeMirrorTheme, ILanguage, TestCallbacks} from "../types";
-import {EditorView} from "@codemirror/basic-setup";
-import {tags, HighlightStyle} from "@codemirror/highlight";
 import {python} from "@codemirror/lang-python";
+import { EditorView } from "codemirror";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 
 // Transpile and run a snippet of python code
 const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), shouldStopExecution: (stop: boolean) => boolean, skulptOptions= {}, testCallbacks?: TestCallbacks, initOutputSinceLastTest = "") => new Promise<string>((resolve, reject) => {
@@ -213,7 +214,7 @@ export const pythonTheme = EditorView.theme({
 export const pythonHighlightStyle = HighlightStyle.define([
 	{tag: tags.docString, color: "#008000"},
 	{tag: tags.comment, color: "#696969"},
-	{tag: tags.definition, color: "#007faa"},
+	{tag: tags.definitionKeyword, color: "#7928a1"},
 	{tag: tags.function(tags.definition(tags.variableName)), color: "#007faa"},
 	{tag: tags.keyword, color: "#7928a1"},
 	{tag: tags.number, color: "#aa5d00"},
@@ -225,5 +226,5 @@ export const pythonHighlightStyle = HighlightStyle.define([
 export const pythonCodeMirrorTheme: CodeMirrorTheme = {
 	languageSupport: python(),
 	theme: pythonTheme,
-	highlightStyle: pythonHighlightStyle
+	highlightStyle: syntaxHighlighting(pythonHighlightStyle),
 }

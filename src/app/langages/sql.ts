@@ -1,15 +1,16 @@
-import {EditorView} from "@codemirror/basic-setup";
-import {HighlightStyle, tags} from "@codemirror/highlight";
+import { EditorView } from "codemirror";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 import {StandardSQL} from "@codemirror/lang-sql";
 import {LanguageSupport} from "@codemirror/language";
 import {CodeMirrorTheme} from "../types";
-import {type DatabaseApi, type Sqlite3Static} from "@sqlite.org/sqlite-wasm";
+import { Database, Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 
 const log = console.log;
 const error = console.error;
 
 let sqlite3: Sqlite3Static;
-let db: DatabaseApi;
+let db: Database;
 let currentDbLink: string;
 
 // system queries
@@ -39,7 +40,7 @@ const setupSqlite3 = async () => {
     });
 }
 
-const downloadDatabase = (sqlite3: any, link: string): Promise<DatabaseApi> => {
+const downloadDatabase = (sqlite3: any, link: string): Promise<Database> => {
     return fetch(link)
         .then((response) => response.arrayBuffer())
         .then((arrayBuffer) => {
@@ -65,7 +66,7 @@ export const runQuery = async (query: string, link = "NO_DB") => {
         if (link !== "NO_DB") {
             db = await downloadDatabase(sqlite3, link);
         } else {
-            db = new sqlite3.oo1.DB('/mydb.sqlite3', 'ct') as DatabaseApi;
+            db = new sqlite3.oo1.DB('/mydb.sqlite3', 'ct') as Database;
         }
         db.exec(QUERIES.foreignKeysOn);
         currentDbLink = link;
@@ -118,7 +119,7 @@ export const sqlTheme = EditorView.theme({
 export const sqlHighlightStyle = HighlightStyle.define([
     {tag: tags.docString, color: "#008000"},
     {tag: tags.comment, color: "#696969"},
-    {tag: tags.definition, color: "#007faa"},
+    {tag: tags.definitionKeyword, color: "#007faa"},
     {tag: tags.function(tags.definition(tags.variableName)), color: "#007faa"},
     {tag: tags.keyword, color: "#7928a1"},
     {tag: tags.number, color: "#aa5d00"},
@@ -130,5 +131,5 @@ export const sqlHighlightStyle = HighlightStyle.define([
 export const sqlCodeMirrorTheme: CodeMirrorTheme = {
     languageSupport: new LanguageSupport(StandardSQL.language, []),
     theme: sqlTheme,
-    highlightStyle: sqlHighlightStyle
+    highlightStyle: syntaxHighlighting(sqlHighlightStyle),
 }
