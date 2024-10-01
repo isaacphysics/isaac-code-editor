@@ -54,7 +54,7 @@ export const DEMO_CODE_PYTHON: PredefinedCode = {
     setup: "",
     code:
         "def bubble_sort(list_of_numbers):\n" +
-        "  for end in range(len(list_of_numbers) - 1, 1, -1):\n" +
+        "  for end in range(len(list_of_numbers) - 1, 0, -1):\n" +
         "    for j in range(0, end):\n" +
         "      if (list_of_numbers[j] > list_of_numbers[j + 1]):\n" +
         "          temp = list_of_numbers[j]\n" +
