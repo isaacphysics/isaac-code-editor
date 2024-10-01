@@ -1,9 +1,9 @@
 import {Editor} from "./Editor";
 import {RunButtons} from "./RunButtons";
 import {OutputTerminal, xtermInterface} from "./OutputTerminal";
-import React, {useCallback, useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {noop, tryCastString, useIFrameMessages} from "./services/utils";
-import {Terminal} from "xterm";
+import {Terminal} from "@xterm/xterm";
 import {
 	DEMO_CODE_JS,
 	DEMO_CODE_PYTHON, DEMO_SQL_QUERY,

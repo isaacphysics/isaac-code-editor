@@ -1,10 +1,9 @@
 import React, {ForwardedRef, useEffect, useImperativeHandle, useRef, useState} from "react";
 
-import {EditorView, EditorState, basicSetup} from "@codemirror/basic-setup";
-import {keymap, ViewUpdate} from "@codemirror/view";
-import {Transaction} from "@codemirror/state";
-import {indentWithTab} from "@codemirror/commands";
-import {history} from "@codemirror/history";
+import {basicSetup} from "codemirror";
+import {EditorView, keymap, ViewUpdate} from "@codemirror/view";
+import {EditorState, Transaction} from "@codemirror/state";
+import {history, indentWithTab} from "@codemirror/commands";
 import {CodeMirrorTheme, EditorChange} from "./types";
 import {THEMES} from "./constants";
 import {pythonCodeMirrorTheme} from "./langages/python";
