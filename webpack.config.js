@@ -48,6 +48,7 @@ const config = {
     ignoreWarnings: [
         { message: /mixed-decls/ },
         { message: /repetitive deprecation warnings/ },
+        { message: /color-functions/ }
     ],
 };
 
