@@ -1,5 +1,3 @@
-// @ts-ignore skulpt doesn't have typings
-import Sk from "skulpt"
 import {noop} from "../services/utils";
 import {ERRORS, UNDEFINED_CHECKER_RESULT} from "../constants";
 import {CodeMirrorTheme, ILanguage, TestCallbacks} from "../types";
@@ -8,9 +6,18 @@ import { EditorView } from "codemirror";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 
-// Transpile and run a snippet of python code
-const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), shouldStopExecution: (stop: boolean) => boolean, skulptOptions= {}, testCallbacks?: TestCallbacks, initOutputSinceLastTest = "") => new Promise<string>((resolve, reject) => {
+const setupSkulpt = async () => {
+	// @ts-ignore skulpt doesn't have typings
+	// we return the default export to obtain a mutable version -- we add custom builtins later
+	const {default: skulpt} = await import("skulpt");
+	return skulpt;
+};
 
+// Transpile and run a snippet of python code
+const runCode = (code: string, printOutput: (output: string) => void, handleInput: () => (Promise<string> | string), shouldStopExecution: (stop: boolean) => boolean, skulptOptions= {}, testCallbacks?: TestCallbacks, initOutputSinceLastTest = "") => new Promise<string>(async (resolve, reject) => {
+
+	const Sk = await setupSkulpt();
+	
 	let finalOutput = "";
 	let outputSinceLastTest = initOutputSinceLastTest;
 
@@ -174,9 +181,11 @@ function runSetupCode(printOutput: (output: string) => void, handleInput: () => 
 	}
 }
 
-function runTests(output: string, handleInput: () => (Promise<string> | string), shouldStopExecution: (stop: boolean) => boolean, testCode?: string, testCallbacks?: TestCallbacks) {
+async function runTests(output: string, handleInput: () => (Promise<string> | string), shouldStopExecution: (stop: boolean) => boolean, testCode?: string, testCallbacks?: TestCallbacks) {
+	const Sk = await setupSkulpt();
+
 	if (testCode) {
-		return runCode(testCode, noop, handleInput, shouldStopExecution, {retainGlobals: true}, testCallbacks, output).then((testOutput) => {
+		return runCode(testCode, noop, handleInput, shouldStopExecution, { retainGlobals: true }, testCallbacks, output).then((testOutput) => {
 			// Do something with output + testOutput maybe?
 			return Sk.globals["checkerResult"]?.v?.toString() ?? UNDEFINED_CHECKER_RESULT;
 		});
