@@ -22,6 +22,13 @@ const config = {
             template: 'public/index.html',
         }),
     ],
+    optimization: {
+        splitChunks: {
+            chunks: "all",
+        },
+        runtimeChunk: true,
+    },
+    devtool : "source-map",
     module: {
         rules: [
             {
