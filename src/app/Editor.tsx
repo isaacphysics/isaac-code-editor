@@ -12,15 +12,23 @@ import {isDefined} from "./services/utils";
 
 interface EditorProps {initCode?: string; language?: string; appendToChangeLog: (change: EditorChange) => void}
 
-export const Editor = React.forwardRef(({initCode, language, appendToChangeLog}: EditorProps, ref: ForwardedRef<{getCode: () => string | undefined}>) => {
+export interface EditorRefType {
+	getCode: () => string | undefined;
+	setHeight: (height: number) => void;
+}
+
+export const Editor = React.forwardRef(({initCode, language, appendToChangeLog}: EditorProps, ref: ForwardedRef<EditorRefType>) => {
 
 	const [editor, setEditor] = useState<EditorView | null>(null);
 
 	const editorRef = useRef<HTMLPreElement>(null);
 
 	// Expose editor.state.doc.toString() to the parent component
-	useImperativeHandle<{getCode: () => string | undefined}, {getCode: () => string | undefined}>(ref, () => ({
-		getCode: () => editor ? editor.state.doc.toString() : undefined
+	useImperativeHandle<EditorRefType, EditorRefType>(ref, () => ({
+		getCode: () => editor ? editor.state.doc.toString() : undefined,
+		setHeight: (height: number) => {
+			editorRef.current?.style.setProperty("height", `${height}px`)
+		}
 	}), [editor]);
 
 	// Insert editor on initCode change

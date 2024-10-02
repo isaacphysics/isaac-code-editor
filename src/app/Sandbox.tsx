@@ -1,4 +1,4 @@
-import {Editor} from "./Editor";
+import {Editor, EditorRefType} from "./Editor";
 import {RunButtons} from "./RunButtons";
 import {OutputTerminal, xtermInterface} from "./OutputTerminal";
 import React, {useCallback, useEffect, useRef, useState} from "react";
@@ -207,13 +207,17 @@ export const Sandbox = () => {
 	const {receivedData, sendMessage} = useIFrameMessages(uid);
 
 	const containerRef = useRef<HTMLDivElement>(null);
-	const codeRef = useRef<{getCode: () => string | undefined}>(null);
+	const codeRef = useRef<EditorRefType>(null);
 	const [xterm, setXTerm] = useState<Terminal>();
 	const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
 	const [queryOutput, setQueryOutput] = useState<{rows: string[][]; columnNames: string[]; error?: string; message?: string}>({rows: [], columnNames: []});
 
 	const [recordLogs, setRecordLogs] = useState<boolean>(false);
+
+	const resizeObserverInitialised = useRef<boolean>(false);
+
+	const [iFrameHeight, setIFrameHeight] = useState<number | undefined>(undefined); // readonly -- set by the parent
 
 	const [changeLog, setChangeLog] = useState<EditorChange[]>([]);
 	const appendToChangeLog = (change: EditorChange) => {
@@ -230,13 +234,27 @@ export const Sandbox = () => {
 	useEffect(() => {
 		if (!containerRef.current || !loaded) return;
 		const resizeObserver = new ResizeObserver(() => {
-			sendMessage({
-				type: MESSAGE_TYPES.RESIZE,
-				height: containerRef.current?.scrollHeight ?? 0
+			// wrapping this in a requestAnimationFrame ignores a benign warning about ResizeObserver not finishing in one frame: https://stackoverflow.com/a/50387233
+			window.requestAnimationFrame(() => {
+				if (!resizeObserverInitialised.current) {
+					// the first resize event is caused by the ResizeObserver being initialised, not a change in size.
+					// however, this is the first time we have access to the container's height, so we can 
+					// calculate and set the code editor's height here relative to the iframe's height.
+					resizeObserverInitialised.current = true;
+					codeRef.current?.setHeight(iFrameHeight ?? 250);
+					return;
+				}
+				sendMessage({
+					type: MESSAGE_TYPES.RESIZE,
+					height: containerRef.current?.scrollHeight ?? 0
+				});
 			});
 		});
 		resizeObserver.observe(containerRef.current);
-		return () => resizeObserver.disconnect();
+		return () => {
+			resizeObserverInitialised.current = false;
+			resizeObserver.disconnect();
+		}
 	}, [loaded]);
 
 	const shouldStop = useRef<boolean>(false);
@@ -303,6 +321,8 @@ export const Sandbox = () => {
 			setPredefinedCode(newPredefCode);
 
 			setIsFullscreen(receivedData?.fullscreen ? receivedData?.fullscreen as boolean : false);
+
+			setIFrameHeight(receivedData?.iFrameHeight as number);
 
 			setLoaded(true);
 			// Clear any irrelevant log data, and make an initial snapshot
