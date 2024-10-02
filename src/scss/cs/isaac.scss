@@ -39,18 +39,11 @@ $tertiary-font: 'arconrounded-regular', sans-serif;
 
 // Utility
 @import "../common/mixins";
-@import "../common/animations";
 
 @import "button";
 
 // Print
 @import "../common/print";
-
-a.disabled {
-    color: $gray-600;
-    pointer-events: none;
-    cursor: default;
-}
 
 body {
     color: $black;
