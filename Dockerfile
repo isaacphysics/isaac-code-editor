@@ -1,15 +1,16 @@
-FROM node:18 AS build
+FROM node:22 AS build
 
 WORKDIR /editor
 
 COPY package.json /editor/package.json
 COPY tsconfig.json /editor/tsconfig.json
-RUN npm i
+COPY webpack.config.js /editor/webpack.config.js
+RUN yarn
 
 COPY public /editor/public
 COPY src /editor/src
 
-RUN npm run build
+RUN yarn run build
 
 FROM nginx:stable-alpine
 

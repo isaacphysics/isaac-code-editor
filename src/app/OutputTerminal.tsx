@@ -1,7 +1,7 @@
-import React, {useEffect, useRef} from "react";
-import {Terminal} from "xterm";
-import {FitAddon} from "xterm-addon-fit";
-import {WebglAddon} from "xterm-addon-webgl"
+import {useEffect, useRef} from "react";
+import {Terminal} from "@xterm/xterm";
+import {FitAddon} from "@xterm/addon-fit";
+import {WebglAddon} from "@xterm/addon-webgl"
 import {ITerminal} from "./types";
 import {ERRORS} from "./constants";
 

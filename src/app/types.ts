@@ -1,6 +1,5 @@
 import {LanguageSupport} from "@codemirror/language"
 import {Extension} from '@codemirror/state';
-import {HighlightStyle} from "@codemirror/highlight";
 
 export interface Feedback {
     succeeded: boolean;
@@ -51,7 +50,7 @@ export interface IFileSystem {
 export interface CodeMirrorTheme {
     languageSupport: LanguageSupport;
     theme?: Extension;
-    highlightStyle?: HighlightStyle;
+    highlightStyle?: Extension;
 }
 
 export interface EditorChange {

@@ -1,7 +1,7 @@
 import {CodeMirrorTheme, ILanguage, PredefinedCode} from "./types";
-import {pythonCodeMirrorTheme, pythonLanguage} from "./langages/python";
-import {javaScriptCodeMirrorTheme, javaScriptLanguage} from "./langages/javascript";
-import {sqlCodeMirrorTheme} from "./langages/sql";
+import {pythonCodeMirrorTheme, pythonLanguage} from "./languages/python";
+import {javaScriptCodeMirrorTheme, javaScriptLanguage} from "./languages/javascript";
+import {sqlCodeMirrorTheme} from "./languages/sql";
 
 export const UNDEFINED_CHECKER_RESULT = "UNDEFINED_CHECKER_RESULT";
 
@@ -54,7 +54,7 @@ export const DEMO_CODE_PYTHON: PredefinedCode = {
     setup: "",
     code:
         "def bubble_sort(list_of_numbers):\n" +
-        "  for end in range(len(list_of_numbers) - 1, 1, -1):\n" +
+        "  for end in range(len(list_of_numbers) - 1, 0, -1):\n" +
         "    for j in range(0, end):\n" +
         "      if (list_of_numbers[j] > list_of_numbers[j + 1]):\n" +
         "          temp = list_of_numbers[j]\n" +
