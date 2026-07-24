@@ -4,7 +4,7 @@ WORKDIR /editor
 
 COPY package.json /editor/package.json
 COPY tsconfig.json /editor/tsconfig.json
-COPY webpack.config.js /editor/webpack.config.js
+COPY vite.config.ts /editor/vite.config.ts
 RUN yarn
 
 COPY public /editor/public

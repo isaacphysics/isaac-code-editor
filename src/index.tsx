@@ -1,10 +1,7 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-
 import "./scss/cs/isaac.scss";
+import { createRoot } from 'react-dom/client';
 import { Sandbox } from "./app/Sandbox";
 
-ReactDOM.render(
-	<Sandbox />,
-	document.getElementById("root")
-);
+const root = createRoot(document.getElementById('root')!);
+
+root.render(<Sandbox />);
