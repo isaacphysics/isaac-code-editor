@@ -9,6 +9,7 @@ RUN yarn
 
 COPY public /editor/public
 COPY src /editor/src
+COPY index.html /editor/index.html
 
 RUN yarn run build
 
