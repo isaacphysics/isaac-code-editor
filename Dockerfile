@@ -5,7 +5,8 @@ WORKDIR /editor
 COPY package.json /editor/package.json
 COPY tsconfig.json /editor/tsconfig.json
 COPY vite.config.ts /editor/vite.config.ts
-RUN yarn
+COPY yarn.lock /editor/yarn.lock
+RUN yarn --frozen-lockfile
 
 COPY public /editor/public
 COPY src /editor/src
