@@ -1,9 +1,11 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import checker from 'vite-plugin-checker';
 
 export default defineConfig({
     plugins: [
         react(),
+        checker({ typescript: true })
     ],
 
     build: {
@@ -32,6 +34,11 @@ export default defineConfig({
             },
         },
     },
+
+    optimizeDeps: {
+        exclude: ['@sqlite.org/sqlite-wasm'], // https://www.npmjs.com/package/@sqlite.org/sqlite-wasm
+    },
+
 
     mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
 });
