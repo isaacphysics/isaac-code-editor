@@ -4,11 +4,13 @@ WORKDIR /editor
 
 COPY package.json /editor/package.json
 COPY tsconfig.json /editor/tsconfig.json
-COPY webpack.config.js /editor/webpack.config.js
-RUN yarn
+COPY vite.config.ts /editor/vite.config.ts
+COPY yarn.lock /editor/yarn.lock
+RUN yarn --frozen-lockfile
 
 COPY public /editor/public
 COPY src /editor/src
+COPY index.html /editor/index.html
 
 RUN yarn run build
 

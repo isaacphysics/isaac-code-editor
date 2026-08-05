@@ -4,7 +4,7 @@ import { tags } from "@lezer/highlight";
 import {StandardSQL} from "@codemirror/lang-sql";
 import {LanguageSupport} from "@codemirror/language";
 import {CodeMirrorTheme} from "../types";
-import { Database, Sqlite3Static } from "@sqlite.org/sqlite-wasm";
+import type {Sqlite3Static, Database} from "@sqlite.org/sqlite-wasm" with { "resolution-mode": "import" }; // https://github.com/microsoft/TypeScript/issues/49721
 
 const log = console.log;
 const error = console.error;
@@ -25,10 +25,7 @@ const QUERIES = {
 
 const setupSqlite3 = async () => {
     const {default: sqlite3InitModule} = await import("@sqlite.org/sqlite-wasm");
-    return await sqlite3InitModule({
-        print: log,
-        printErr: error,
-    }).then((sql3) => {
+    return await sqlite3InitModule().then((sql3) => {
         try {
             log('Running SQLite3 version', sql3.version.libVersion);
             sqlite3 = sql3;
@@ -40,12 +37,13 @@ const setupSqlite3 = async () => {
     });
 }
 
-const downloadDatabase = (sqlite3: any, link: string): Promise<Database> => {
+const downloadDatabase = (sqlite3: Sqlite3Static, link: string): Promise<Database> => {
     return fetch(link)
         .then((response) => response.arrayBuffer())
         .then((arrayBuffer) => {
             const p = sqlite3.wasm.allocFromTypedArray(arrayBuffer);
             const db = new sqlite3.oo1.DB();
+            if (!db.pointer) return db;
             const rc = sqlite3.capi.sqlite3_deserialize(
                 db.pointer, 'main', p, arrayBuffer.byteLength, arrayBuffer.byteLength,
                 sqlite3.capi.SQLITE_DESERIALIZE_FREEONCLOSE
